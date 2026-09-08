@@ -9,6 +9,8 @@ micro2 topology (4 qubits: d1 -> {0, 1}, d2 -> {2, 3}):
     B --e5(c=10, lat=3)--> T           load it 4 + 3 = 7 > c = 5.
 """
 
+import dataclasses
+
 import pytest
 
 from routing_qaoa import CandidatePath, Demand, Link, RoutingInstance
@@ -32,9 +34,21 @@ MICRO2_PATHS = {
 }
 
 
+# Same topology with d1 at priority pi_1 = 2 (d2 stays neutral at 1).
+MICRO2_PRIORITY_DEMANDS = (
+    dataclasses.replace(MICRO2_DEMANDS[0], priority=2.0),
+    MICRO2_DEMANDS[1],
+)
+
+
 @pytest.fixture
 def micro2() -> RoutingInstance:
     return RoutingInstance(MICRO2_LINKS, MICRO2_DEMANDS, dict(MICRO2_PATHS))
+
+
+@pytest.fixture
+def micro2_priority() -> RoutingInstance:
+    return RoutingInstance(MICRO2_LINKS, MICRO2_PRIORITY_DEMANDS, dict(MICRO2_PATHS))
 
 
 def all_bitstrings(n: int) -> list[list[int]]:

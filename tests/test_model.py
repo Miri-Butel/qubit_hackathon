@@ -23,6 +23,10 @@ def test_path_latency(micro2: RoutingInstance) -> None:
     assert micro2.path_latency(1, 1) == 3  # d2 via e5
 
 
+def test_priority_defaults_to_one() -> None:
+    assert Demand("d", "A", "T", 1).priority == 1.0
+
+
 def _build(links=MICRO2_LINKS, demands=MICRO2_DEMANDS, paths=MICRO2_PATHS) -> RoutingInstance:
     return RoutingInstance(links, demands, dict(paths))
 
@@ -41,6 +45,14 @@ def test_validation_errors() -> None:
         )
     with pytest.raises(ValueError, match="bandwidth must be > 0"):
         _build(demands=(MICRO2_DEMANDS[0], Demand("d2", "B", "T", 0)))
+    for bad_priority in (0.0, -1.0):
+        with pytest.raises(ValueError, match="priority must be > 0"):
+            _build(
+                demands=(
+                    MICRO2_DEMANDS[0],
+                    Demand("d2", "B", "T", 3, priority=bad_priority),
+                )
+            )
     with pytest.raises(ValueError, match="keys must match demand names"):
         _build(paths={**MICRO2_PATHS, "ghost": (CandidatePath((E1,)),)})
     with pytest.raises(ValueError, match="has no candidate paths"):

@@ -1,3 +1,4 @@
+import dataclasses
 import itertools
 import math
 
@@ -16,7 +17,13 @@ from routing_qaoa import (
     onehot_feasible,
     phi_uncap,
 )
-from tests.conftest import all_bitstrings
+from tests.conftest import (
+    MICRO2_DEMANDS,
+    MICRO2_LINKS,
+    MICRO2_PATHS,
+    MICRO2_PRIORITY_DEMANDS,
+    all_bitstrings,
+)
 
 # ---- independent (from-first-principles) reference cost for micro2 ----
 
@@ -29,7 +36,9 @@ def manual_cost(
 ) -> float:
     lat_raw, lo, hi = {}, 0.0, 0.0
     for k, demand in enumerate(instance.demands):
-        b = demand.bandwidth if weights.bandwidth_weighted_latency else 1.0
+        b = demand.priority * (
+            demand.bandwidth if weights.bandwidth_weighted_latency else 1.0
+        )
         costs = [b * instance.path_latency(k, p) for p in range(len(instance.paths_of(k)))]
         for p, c in enumerate(costs):
             lat_raw[instance.flat_index(k, p)] = c
@@ -97,6 +106,66 @@ def test_bandwidth_weighting_toggle(micro2: RoutingInstance) -> None:
     assert weighted.linear[0] == pytest.approx(8 / 3)
     # unweighted: d1 L = 2, spread = (2+3)-(2+2) = 1 -> linear[0] = 2
     assert unweighted.linear[0] == pytest.approx(2.0)
+
+
+# ---- per-demand priority (pi_k) ----
+
+
+def test_priority_defaults_to_neutral(micro2: RoutingInstance) -> None:
+    explicit = RoutingInstance(
+        MICRO2_LINKS,
+        tuple(dataclasses.replace(d, priority=1.0) for d in MICRO2_DEMANDS),
+        dict(MICRO2_PATHS),
+    )
+    assert compute_coefficients(explicit) == compute_coefficients(micro2)
+
+
+def test_priority_scales_latency_coefficients(micro2_priority: RoutingInstance) -> None:
+    coeffs = compute_coefficients(micro2_priority)
+    # pi_1 = 2: d1 L = 2*4*2 = 16 (both paths), d2 L = 3*2 = 6 / 3*3 = 9,
+    # spread = (16+9) - (16+6) = 3 -> linear[0] = 16/3, linear[2] = 6/3.
+    assert coeffs.linear[0] == pytest.approx(16 / 3)
+    assert coeffs.linear[2] == pytest.approx(2.0)
+
+
+def test_priority_global_rescale_is_invariant(micro2_priority: RoutingInstance) -> None:
+    scaled = RoutingInstance(
+        MICRO2_LINKS,
+        tuple(
+            dataclasses.replace(d, priority=10 * d.priority)
+            for d in MICRO2_PRIORITY_DEMANDS
+        ),
+        dict(MICRO2_PATHS),
+    )
+    base = compute_coefficients(micro2_priority)
+    assert compute_coefficients(scaled).linear == pytest.approx(base.linear)
+
+
+def test_priority_preserves_latency_spread(micro2_priority: RoutingInstance) -> None:
+    weights = QuboWeights(lambda_cong=0.0, cost_scale=2.5)
+    cost = build_cost_function(compute_coefficients(micro2_priority, weights))
+    values = [
+        cost(bits)
+        for bits in all_bitstrings(micro2_priority.num_qubits)
+        if onehot_feasible(bits, micro2_priority)
+    ]
+    assert max(values) - min(values) == pytest.approx(2.5)
+
+
+def test_priority_cost_matches_manual(micro2_priority: RoutingInstance) -> None:
+    weights = QuboWeights()
+    cost = build_cost_function(compute_coefficients(micro2_priority, weights))
+    for bits in all_bitstrings(micro2_priority.num_qubits):
+        assert cost(bits) == pytest.approx(manual_cost(bits, micro2_priority, weights))
+
+
+def test_priority_leaves_congestion_untouched(
+    micro2: RoutingInstance, micro2_priority: RoutingInstance
+) -> None:
+    # u_e is physical: link incidence coefficients must not see pi_k.
+    assert compute_coefficients(micro2_priority).link_terms == (
+        compute_coefficients(micro2).link_terms
+    )
 
 
 def test_switch_penalty(micro2: RoutingInstance) -> None:
