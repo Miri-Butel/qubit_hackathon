@@ -52,6 +52,9 @@ class QaoaConfig:
     # CVaR fraction for estimate_cost (Barkoutsos et al., arXiv:1907.04769):
     # optimize the mean of the best `quantile` of sampled energies; 1.0 = plain mean.
     quantile: float = 1.0
+    # Also sample at the un-optimized initial parameters (one extra cloud call),
+    # giving a before/after pair for plot_sampled_cost_distribution.
+    sample_initial: bool = False
 
 
 def build_qaoa_main(
@@ -103,6 +106,14 @@ class QaoaResult:
     objective_values: list[float] = field(repr=False)
     samples: pd.DataFrame = field(repr=False)
     num_shots: int = 0
+    # Sample at the initial parameters, when QaoaConfig.sample_initial is set.
+    initial_samples: pd.DataFrame | None = field(default=None, repr=False)
+
+
+def _sample_frame(session: ExecutionSession, params: Sequence[float]) -> pd.DataFrame:
+    """Sample at `params`; classiq 1.29 returns a DataFrame, older versions wrap it."""
+    raw = session.sample({"params": list(params)})
+    return raw if isinstance(raw, pd.DataFrame) else raw.dataframe
 
 
 def run_qaoa(
@@ -125,10 +136,14 @@ def run_qaoa(
         )
 
     objective_values: list[float] = []
+    initial_params = initial_qaoa_params(config.num_layers)
+    initial_samples: pd.DataFrame | None = None
     es = ExecutionSession(
         qprog, num_shots=config.num_shots, random_seed=config.random_seed
     )
     try:
+        if config.sample_initial:
+            initial_samples = _sample_frame(es, initial_params)
 
         def estimate(params: np.ndarray) -> float:
             value = es.estimate_cost(
@@ -141,13 +156,11 @@ def run_qaoa(
 
         optimization = minimize(
             estimate,
-            x0=initial_qaoa_params(config.num_layers),
+            x0=initial_params,
             method="COBYLA",
             options={"maxiter": config.max_iterations},
         )
-        raw = es.sample({"params": optimization.x.tolist()})
-        # classiq 1.29: sample() returns a DataFrame; older versions need .dataframe
-        samples = raw if isinstance(raw, pd.DataFrame) else raw.dataframe
+        samples = _sample_frame(es, optimization.x.tolist())
     finally:
         es.close()
 
@@ -156,4 +169,5 @@ def run_qaoa(
         objective_values=objective_values,
         samples=samples,
         num_shots=config.num_shots,
+        initial_samples=initial_samples,
     )
