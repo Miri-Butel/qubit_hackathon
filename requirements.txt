@@ -1,0 +1,9 @@
+# Satisfied by the shared venv at ../../.venv (Python 3.11)
+classiq==1.29.0
+networkx>=3.0
+numpy
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+jupyter
+pytest

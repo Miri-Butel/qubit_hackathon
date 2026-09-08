@@ -1,0 +1,505 @@
+% QAOA path selection for network traffic routing -- formulation and solution.
+% Qubit hackathon (Classiq), pipeline steps 3-4.
+% Build: pdflatex qaoa_routing.tex (twice for cross-references).
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+\newcommand{\onehot}{\mathrm{1hot}}
+\newcommand{\lat}{\mathrm{lat}}
+\newcommand{\cng}{\mathrm{cong}}
+\newcommand{\switch}{\mathrm{switch}}
+\newcommand{\used}{\mathrm{used}}
+\newcommand{\Uncap}{\mathrm{Uncap}}
+
+\title{Quantum Path Selection for Network Traffic Routing:\\
+a QAOA Formulation and Solution}
+\author{Qubit Hackathon team}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We address the AT\&T network-traffic-routing challenge with a hybrid
+quantum--classical pipeline: classical preprocessing enumerates a small set of
+feasible candidate paths per traffic demand, a quantum optimizer (QAOA on the
+Classiq platform) selects one path per demand by minimizing a QUBO cost
+Hamiltonian that trades off latency against congestion, and classical
+post-processing validates feasibility and computes operational KPIs. This
+document states the QUBO formulation, the QAOA solution method as implemented,
+and a worked example on a 9-qubit toy instance, including the
+Fortz--Thorup congestion cost \cite{fortz2000} used both as an optional
+in-Hamiltonian congestion profile and as an instance-independent KPI.
+\end{abstract}
+
+\section{Problem and hybrid pipeline}
+\label{sec:problem}
+
+A communication network is a directed graph $G=(V,E)$ whose links $e \in E$
+have finite capacity $c_e > 0$ and latency $\ell_e \ge 0$. Traffic consists of
+$K$ demands: demand $k$ must route bandwidth $b_k > 0$ from source $s_k$ to
+target $t_k$. The goal is to select routes that use resources efficiently
+while avoiding congestion and holding service quality --- the challenge KPIs
+are congestion relief on the most loaded links, low average latency, high
+demand satisfaction, few route changes against the current state, and zero
+capacity violations.
+
+The solution is a five-step hybrid pipeline; this document covers the
+combinatorial core (steps 3--4):
+
+\begin{enumerate}
+  \item \textbf{Input} the network graph, link capacities/latencies, and the
+        demand matrix.
+  \item \textbf{Classical path generation:} for each demand $k$, compute a
+        small candidate set $P_k$ of feasible paths ($K$-shortest paths,
+        filtered by latency/policy constraints). The candidate sets are an
+        \emph{input} to the steps below.
+  \item \textbf{QUBO construction (Section~\ref{sec:qubo}):} one binary
+        variable per candidate path; a cost Hamiltonian that selects exactly
+        one path per demand, prefers low latency, and penalizes congestion.
+  \item \textbf{Quantum optimization (Section~\ref{sec:qaoa}):} QAOA over the
+        cost Hamiltonian, implemented on Classiq; a classical optimizer tunes
+        the variational parameters.
+  \item \textbf{Classical decode and validation
+        (Section~\ref{sec:decode}):} map sampled bitstrings back to routes,
+        check feasibility, and compute KPIs against a classical baseline.
+\end{enumerate}
+
+Restricting each demand to a precomputed candidate set makes this a
+\emph{restricted optimal general routing} (explicit-path, MPLS-style) problem
+in the sense of Fortz--Thorup \cite{fortz2000}, and keeps the qubit count at
+$N = \sum_k |P_k|$ --- independent of the number of links.
+
+\section{QUBO formulation}
+\label{sec:qubo}
+
+\subsection{Encoding}
+
+The decision variables are
+\begin{equation}
+  x_{k,p} \in \{0,1\}, \qquad
+  x_{k,p} = 1 \iff \text{demand } k \text{ routes on its candidate path }
+  p \in P_k .
+\end{equation}
+Variables are packed into one flat register of
+$N = \sum_{k=1}^{K} |P_k|$ qubits by
+\begin{equation}
+  i(k,p) = o_k + p, \qquad o_k = \sum_{j<k} |P_j| ,
+\end{equation}
+which supports differing candidate-set sizes $|P_k|$ per demand.
+
+\subsection{Cost Hamiltonian}
+
+The full (diagonal) cost Hamiltonian is
+\begin{equation}
+  \label{eq:H}
+  H \;=\; \lambda_{\onehot}\, H_{\onehot}
+     \;+\; \widetilde{H}_{\lat}
+     \;+\; \lambda_{\cng}\, \widetilde{H}_{\cng}
+     \;+\; \lambda_{\switch}\, H_{\switch},
+\end{equation}
+with all coefficients precomputed classically as plain floats. The same
+polynomial is used symbolically to build the quantum circuit and numerically
+to evaluate sampled bitstrings (Section~\ref{sec:qaoa}).
+
+\paragraph{One path per demand (constraint penalty).}
+\begin{equation}
+  \label{eq:onehot}
+  H_{\onehot} \;=\; \sum_{k=1}^{K} \Bigl( \sum_{p \in P_k} x_{k,p} - 1 \Bigr)^{2}.
+\end{equation}
+$H_{\onehot} = 0$ exactly on one-hot assignments; the smallest violation
+(zero or two selected paths for some demand) costs $1$.
+
+\paragraph{Latency objective.}
+The raw cost of routing demand $k$ on path $p$ is bandwidth-weighted by
+default,
+\begin{equation}
+  L_{k,p} \;=\; b_k \sum_{e \in p} \ell_e
+  \qquad \text{(optionally unweighted: } L_{k,p} = \textstyle\sum_{e\in p}\ell_e\text{)},
+\end{equation}
+so that a 10\,Gbps demand on a slow path costs ten times a 1\,Gbps demand.
+Latencies are normalized so that the spread of the latency term over the
+feasible (one-hot) space equals a single tunable scale $c_{\mathrm{scale}}$:
+\begin{equation}
+  \label{eq:latnorm}
+  \widetilde{H}_{\lat} = s_{\lat} \sum_{k,p} L_{k,p}\, x_{k,p},
+  \qquad
+  s_{\lat} = \frac{c_{\mathrm{scale}}}{\max(L^{\max} - L^{\min},\, \varepsilon)},
+\end{equation}
+where $L^{\min} = \sum_k \min_{p} L_{k,p}$ and
+$L^{\max} = \sum_k \max_{p} L_{k,p}$ are the exact feasible-space extremes
+(the latency term is separable per demand), and $\varepsilon$ guards a
+degenerate zero spread.
+
+\paragraph{Congestion (soft capacity).}
+The utilization of link $e$ is linear in $x$,
+\begin{equation}
+  u_e(x) \;=\; \frac{1}{c_e} \sum_{(k,p)\,:\, e \in p} b_k\, x_{k,p},
+\end{equation}
+and the congestion term averages a convex profile $g$ over the $m_{\used}$
+links that appear in at least one candidate path:
+\begin{equation}
+  \label{eq:cong}
+  \widetilde{H}_{\cng} \;=\; \frac{c_{\mathrm{scale}}}{m_{\used}}
+      \sum_{e \in E_{\used}} g\bigl(u_e(x)\bigr),
+  \qquad
+  g(u) =
+  \begin{cases}
+    u^{2} & \text{\texttt{quadratic} (default)},\\[2pt]
+    \alpha u + \beta u^{2} & \text{\texttt{fortz-thorup-fit}}.
+  \end{cases}
+\end{equation}
+No slack qubits and no hard capacity constraint are used: the quadratic
+profile penalizes congestion smoothly and pushes solutions under capacity,
+while hard feasibility is verified classically at decode time
+(Section~\ref{sec:decode}). Since $u_e$ is dimensionless and $O(1)$ for sane
+instances, the average keeps this term $O(c_{\mathrm{scale}})$.
+
+The second profile calibrates $g$ to the canonical Fortz--Thorup link cost
+$\Phi_e$ \cite{fortz2000}: the piecewise-linear convex function with
+\begin{equation}
+  \label{eq:phi}
+  \Phi_e'(\ell) =
+  \begin{cases}
+     1    & \ell/c_e \in [0, 1/3)\\
+     3    & \ell/c_e \in [1/3, 2/3)\\
+     10   & \ell/c_e \in [2/3, 9/10)\\
+     70   & \ell/c_e \in [9/10, 1)\\
+     500  & \ell/c_e \in [1, 11/10)\\
+     5000 & \ell/c_e \in [11/10, \infty)
+  \end{cases}
+  \qquad\Longrightarrow\qquad
+  \Phi_e(c_e) = \tfrac{32}{3}\, c_e .
+\end{equation}
+A piecewise-linear function of a sum of binaries is not QUBO-expressible
+without auxiliary variables, so the in-Hamiltonian surrogate is the
+non-negative least-squares fit of $\alpha u + \beta u^2$ to $\Phi_e$ per unit
+capacity on $u \in [0, 1.1]$. The hockey-stick tail of $\Phi$ drives the
+unconstrained linear coefficient negative (which would \emph{reward} lightly
+loaded links), so $\alpha$ is clamped at $0$; the fit is a tail-calibrated
+pure quadratic, $\alpha = 0$, $\beta \approx 16.73$ --- about $16.7\times$ the
+default congestion pressure. The linear part (when present) folds into the
+linear coefficients of $H$; the quadratic part reuses the $u_e^2$ machinery.
+
+\paragraph{Route changes (optional, default off).}
+Given a current routing $r : k \mapsto p_{\mathrm{cur}}(k)$ for some or all
+demands,
+\begin{equation}
+  H_{\switch} \;=\; \sum_{k \,\in\, \operatorname{dom} r}\;
+      \sum_{p \neq p_{\mathrm{cur}}(k)} x_{k,p},
+\end{equation}
+so in the feasible subspace each rerouted demand costs exactly
+$\lambda_{\switch}\, c_{\mathrm{scale}}$. The default is
+$\lambda_{\switch} = 0$ (the term is skipped entirely).
+
+\subsection{QUBO form}
+
+Using $x^2 = x$ for binaries, each squared affine term in
+\eqref{eq:onehot}--\eqref{eq:cong} expands to the standard QUBO monomials; for
+a link $e$ with coefficients $a_{e,i} = b_{k(i)}/c_e$ over the paths crossing
+it,
+\begin{equation}
+  u_e^2 \;=\; \sum_i a_{e,i}^2\, x_i \;+\; 2 \sum_{i<j} a_{e,i}\, a_{e,j}\, x_i x_j ,
+\end{equation}
+i.e.\ pairwise couplings between any two candidate paths sharing a link.
+Cross-terms between two paths of the \emph{same} demand also appear; they are
+inert on the one-hot-feasible subspace (at most one of the two variables is
+$1$) and mildly reinforce $H_{\onehot}$ outside it, so they are kept. The
+total Hamiltonian is therefore degree~2 --- an Ising model directly
+implementable as a QAOA phase separator.
+
+\subsection{Weights and normalization}
+\label{sec:weights}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lll}
+\toprule
+Parameter & Default & Role \\
+\midrule
+$\lambda_{\onehot}$        & $4.0$ & one-hot penalty weight \\
+$\lambda_{\cng}$          & $1.0$ & congestion weight \\
+$\lambda_{\switch}$        & $0.0$ & route-change weight (off) \\
+$c_{\mathrm{scale}}$       & $1.0$ & overall objective scale \\
+congestion profile         & \texttt{quadratic} & $g(u)$ in \eqref{eq:cong} \\
+\bottomrule
+\end{tabular}
+\caption{Default Hamiltonian weights.}
+\label{tab:weights}
+\end{table}
+
+The normalization \eqref{eq:latnorm} fixes the feasible-space spread of
+$\widetilde{H}_{\lat}$ to $c_{\mathrm{scale}}$ and keeps
+$\widetilde{H}_{\cng} = O(c_{\mathrm{scale}})$, so the maximum feasible
+objective gap is $\approx 2\,c_{\mathrm{scale}}$ and
+$\lambda_{\onehot} = 4$ dominates it: breaking the one-hot constraint is
+never energetically favorable. With $K$ demands the total spread of $H$ stays
+$O(10)$, keeping $e^{-i\gamma H}$ away from $2\pi$ phase wrap-around for
+$\gamma \in (0,\pi)$ --- the normalization strategy of Classiq's
+network-traffic-optimization reference notebook \cite{classiqtelecom}.
+
+\section{QAOA solution}
+\label{sec:qaoa}
+
+\subsection{Ansatz}
+
+The circuit is the standard depth-$L$ QAOA \cite{farhi2014} over $N$ qubits,
+built on Classiq as an alternation of an arithmetic phase gadget and a
+transverse mixer:
+\begin{equation}
+  \label{eq:ansatz}
+  \left| \psi(\gamma, \beta) \right\rangle
+  \;=\;
+  \prod_{l=1}^{L} \Bigl[ U_M(\beta_l)\; U_C(\gamma_l) \Bigr]\;
+  \left| + \right\rangle^{\otimes N},
+\end{equation}
+\begin{equation}
+  U_C(\gamma)\,|x\rangle = e^{-i \gamma H(x)}\,|x\rangle,
+  \qquad
+  U_M(\beta) = \bigotimes_{i=1}^{N} R_X^{(i)}(\beta),
+  \quad R_X(\beta) = e^{-i \beta X / 2}.
+\end{equation}
+$U_C$ is generated directly from the polynomial $H(x)$ of
+Section~\ref{sec:qubo} by Classiq's \texttt{phase} statement (the synthesis
+engine compiles the degree-2 polynomial into single- and two-qubit phase
+rotations); sign and half-angle conventions relative to \cite{farhi2014} are
+reparameterizations absorbed by the classical optimizer. The identical Python
+cost function is reused classically to score sampled bitstrings --- one
+definition, two uses.
+
+\subsection{Parameter optimization}
+
+The variational objective is the shot-estimated energy
+\begin{equation}
+  F(\gamma, \beta) \;=\;
+  \bigl\langle \psi(\gamma,\beta) \bigr| H \bigl| \psi(\gamma,\beta) \bigr\rangle
+  \;\approx\; \sum_{x} \frac{n_x}{S}\, H(x),
+\end{equation}
+with $n_x$ the observed counts over $S$ shots. $F$ is minimized with COBYLA,
+starting from the midpoint linear schedule
+\begin{equation}
+  \gamma_l = \pi\,\frac{2l-1}{2L}, \qquad
+  \beta_l = \gamma_{L+1-l}, \qquad l = 1,\dots,L
+\end{equation}
+(ascending $\gamma$, descending $\beta$ --- an annealing-like ramp). Defaults:
+$L = 3$ layers, $S = 2048$ shots, at most $60$ COBYLA iterations, fixed
+simulator seed for reproducibility. After convergence the circuit is sampled
+once more at the optimal parameters to obtain the solution distribution.
+
+\subsection{Decoding, feasibility, and KPIs}
+\label{sec:decode}
+
+Each sampled bitstring is decoded classically:
+\begin{itemize}
+  \item \textbf{Routes:} demand $k$ is \emph{satisfied} iff exactly one
+        $x_{k,p} = 1$; the selected paths determine per-link loads
+        (unsatisfied demands carry no traffic).
+  \item \textbf{Feasibility:} one-hot satisfaction per demand and hard
+        capacity checks per link (\emph{load} $\le c_e$) --- the soft
+        congestion term does not replace validation.
+  \item \textbf{KPIs (raw units, never normalized):} per-link
+        load and utilization, maximum utilization, capacity violations,
+        total and bandwidth-weighted latency, demands satisfied, and the
+        Fortz--Thorup congestion measure
+        \begin{equation}
+          \Phi = \sum_{e \in E} \Phi_e(\mathrm{load}_e),
+          \qquad
+          \Phi^{*} = \frac{\Phi}{\Phi_{\Uncap}},
+          \qquad
+          \Phi_{\Uncap} = \sum_{k} b_k \cdot \operatorname{hopdist}(s_k, t_k),
+        \end{equation}
+        with $\Phi_e$ the exact piecewise cost \eqref{eq:phi} (not the fit)
+        and $\operatorname{hopdist}$ the unit-weight shortest-path distance.
+        $\Phi^{*} = 1$ is the uncapacitated ideal; values from $1$ to roughly
+        $\tfrac{32}{3} \approx 10.67$ mean all traffic flows within capacity;
+        $\Phi^{*} \ge \tfrac{32}{3}$ signals a congested network
+        \cite{fortz2000}.
+\end{itemize}
+For small instances an exhaustive scan of the $\prod_k |P_k|$ one-hot
+assignments provides the exact optimum as a reference; QAOA quality is judged
+by (i) convergence of $F$ toward that reference, (ii) the probability mass on
+one-hot-feasible bitstrings, and (iii) the best sampled feasible solution
+matching (or nearing) the reference optimum.
+
+\section{Worked example (9 qubits)}
+\label{sec:example}
+
+\subsection{Instance}
+
+Six routers \textsf{A}--\textsf{F}, nine directed links
+(Table~\ref{tab:links}), three demands (Table~\ref{tab:demands}). Candidate
+paths are the $\le 3$ latency-shortest simple paths per demand --- the
+stand-in for pipeline step~2 --- giving $|P_1| = |P_2| = |P_3| = 3$ and
+$N = 9$ qubits (Table~\ref{tab:indexmap}).
+
+\begin{table}[ht]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Link & $c_e$ & $\ell_e$ \\
+\midrule
+A$\to$B & 10 & 1 \\
+B$\to$D & 5  & 1 \\
+A$\to$C & 10 & 2 \\
+C$\to$D & 10 & 2 \\
+B$\to$C & 5  & 1 \\
+D$\to$E & 10 & 1 \\
+D$\to$F & 5  & 2 \\
+E$\to$F & 10 & 1 \\
+C$\to$E & 10 & 3 \\
+\bottomrule
+\end{tabular}
+\caption{Links (capacity, latency).}
+\label{tab:links}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\begin{tabular}{lccc}
+\toprule
+Demand & $s_k$ & $t_k$ & $b_k$ \\
+\midrule
+$d_1$ & A & F & 4 \\
+$d_2$ & A & E & 3 \\
+$d_3$ & B & F & 3 \\
+\bottomrule
+\end{tabular}
+\caption{Traffic demands.}
+\label{tab:demands}
+\end{minipage}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{clclcc}
+\toprule
+Qubit & Demand & $p$ & Path & $\sum_{e\in p}\ell_e$ & $L_{k,p} = b_k \ell(p)$ \\
+\midrule
+$x_0$ & $d_1$ & 0 & A--B--D--F     & 4 & 16 \\
+$x_1$ & $d_1$ & 1 & A--B--D--E--F  & 4 & 16 \\
+$x_2$ & $d_1$ & 2 & A--C--D--F     & 6 & 24 \\
+$x_3$ & $d_2$ & 0 & A--B--D--E     & 3 & 9  \\
+$x_4$ & $d_2$ & 1 & A--C--E        & 5 & 15 \\
+$x_5$ & $d_2$ & 2 & A--B--C--E     & 5 & 15 \\
+$x_6$ & $d_3$ & 0 & B--D--F        & 3 & 9  \\
+$x_7$ & $d_3$ & 1 & B--D--E--F     & 3 & 9  \\
+$x_8$ & $d_3$ & 2 & B--C--D--F     & 5 & 15 \\
+\bottomrule
+\end{tabular}
+\caption{Candidate paths and the flat index map ($o_1 = 0$, $o_2 = 3$,
+$o_3 = 6$).}
+\label{tab:indexmap}
+\end{table}
+
+The normalization constants evaluate to $L^{\min} = 34$, $L^{\max} = 54$,
+hence $s_{\lat} = 1/20 = 0.05$; all $m_{\used} = 9$ links are crossed by some
+candidate path, so the congestion prefactor is
+$\lambda_{\cng} c_{\mathrm{scale}} / m_{\used} = 1/9$; the scaled one-hot
+weight is $4$. The uncapacitated Fortz--Thorup bound is
+$\Phi_{\Uncap} = 4\cdot3 + 3\cdot2 + 3\cdot2 = 24$.
+
+\subsection{Reference solution}
+
+Table~\ref{tab:results} reports the exact optimum of $H$ over all $27$
+one-hot assignments (the reference QAOA must reproduce), for three
+configurations of the congestion term. KPIs are computed by the decoder in
+raw units.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+Congestion term & $(p_{d_1}, p_{d_2}, p_{d_3})$ & $\max_e u_e$ &
+Cap.\ viol. & $\sum_k b_k \ell(p_k)$ & $\Phi^{*}$ \\
+\midrule
+off ($\lambda_{\cng}=0$)
+  & (A--B--D--F,\; A--B--D--E,\; B--D--F) & 2.00 & 2 & 34 & 1276.1 \\
+\texttt{quadratic} (default)
+  & (A--B--D--E--F,\; A--B--D--E,\; B--D--F) & 2.00 & 1 & 34 & 952.0 \\
+\texttt{fortz-thorup-fit}
+  & (A--C--D--F,\; A--C--E,\; B--D--E--F) & \textbf{0.80} & \textbf{0} & 48 & \textbf{2.08} \\
+\bottomrule
+\end{tabular}
+\caption{Exact optimum of $H$ under three congestion settings (all other
+weights at their defaults, Table~\ref{tab:weights}). Latency is
+bandwidth-weighted; $\Phi^{*}$ uses the exact piecewise link cost.}
+\label{tab:results}
+\end{table}
+
+The example is built so the pure-latency optimum overloads shared links: all
+three demands prefer the cheap corridor through B$\to$D (capacity~5), which
+with $\lambda_{\cng} = 0$ carries load $10$ ($u = 2.0$) alongside a second
+violation on D$\to$F. Switching on the default quadratic term changes the
+optimum (it reroutes $d_1$ off D$\to$F, halving the Fortz--Thorup cost) ---
+the congestion term demonstrably reshapes the routing --- but at
+$\lambda_{\cng} = 1$ the latency term still dominates and B$\to$D stays
+overloaded. The Fortz--Thorup-calibrated profile ($\beta \approx 16.73$)
+prices overload realistically and drives the optimum to a fully feasible
+routing: zero capacity violations, maximum utilization $0.80$, and
+$\Phi^{*} = 2.08$ (well below the congestion threshold $32/3$), bought with
+$+41\%$ bandwidth-weighted latency ($34 \to 48$). This is exactly the
+congestion-relief-versus-latency trade-off of the challenge KPIs, exposed
+through the $\lambda_{\cng}$ / profile knobs.
+
+\subsection{QAOA run}
+
+The demo notebook (\texttt{qaoa\_routing.ipynb}) synthesizes the 9-qubit,
+$L = 3$ ansatz \eqref{eq:ansatz} for this instance, optimizes
+$(\gamma, \beta)$ with COBYLA ($S = 2048$ shots, $\le 60$ iterations) on the
+Classiq executor, and reports: the convergence of $F$ against the
+brute-force optimum of Table~\ref{tab:results} as a reference line, the
+probability mass on one-hot-feasible bitstrings, the top-10 sampled solutions
+with full KPI rows, and the best feasible sample versus the exact optimum.
+Success is judged by the soft criteria of Section~\ref{sec:decode} (COBYLA on
+shot noise is not asserted to hit the exact optimum).
+
+\section{Scaling and outlook}
+\label{sec:outlook}
+
+\paragraph{Qubit economy.} The path-based encoding uses
+$N = \sum_k |P_k| \approx K \bar{k}$ qubits for $K$ demands with $\bar{k}$
+candidate paths each, independent of network size; an edge-based
+flow-conservation encoding of the same 6-node instance
+\cite{classiqtelecom} needs $K \cdot |E| = 27$ qubits versus our $9$, and the
+gap widens with the network. The price is the classical restriction to
+candidate sets --- path quality is bounded by step~2 of the pipeline.
+
+\paragraph{Knobs.} $\lambda_{\cng}$ and the congestion profile trade latency
+against congestion relief (Table~\ref{tab:results}); $\lambda_{\switch}$ with
+a current routing penalizes unnecessary route changes;
+$c_{\mathrm{scale}}$, layer count $L$, shots, and iteration budget control the
+QAOA itself.
+
+\paragraph{Next steps (pipeline step 5).} Compare QAOA-selected routings
+against a classical baseline (MILP over the same candidate sets, and the
+Fortz--Thorup LP bound for unrestricted routing) on the full KPI set:
+most-congested-link relief, average latency, demand satisfaction, route
+changes, and zero capacity/resiliency violations.
+
+\begin{thebibliography}{9}
+
+\bibitem{farhi2014}
+E.~Farhi, J.~Goldstone, and S.~Gutmann,
+\emph{A Quantum Approximate Optimization Algorithm},
+arXiv:1411.4028 (2014).
+
+\bibitem{fortz2000}
+B.~Fortz and M.~Thorup,
+\emph{Internet Traffic Engineering by Optimizing OSPF Weights},
+Proc.\ IEEE INFOCOM 2000, pp.~519--528.
+
+\bibitem{classiqtelecom}
+Classiq Technologies,
+\emph{Network Traffic Optimization} (QAOA application notebook),
+\url{https://github.com/Classiq/classiq-library/tree/main/applications/telecom/network_traffic_optimization}.
+
+\end{thebibliography}
+
+\end{document}
