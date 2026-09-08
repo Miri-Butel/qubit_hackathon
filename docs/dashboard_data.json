@@ -1,0 +1,445 @@
+{
+  "nodes": [
+    {
+      "id": "A",
+      "x": 0,
+      "y": 0.5
+    },
+    {
+      "id": "B",
+      "x": 1,
+      "y": 1
+    },
+    {
+      "id": "C",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "id": "D",
+      "x": 2,
+      "y": 1
+    },
+    {
+      "id": "E",
+      "x": 2,
+      "y": 0
+    },
+    {
+      "id": "F",
+      "x": 3,
+      "y": 0.5
+    }
+  ],
+  "links": [
+    {
+      "u": "A",
+      "v": "B",
+      "capacity": 10,
+      "latency": 1
+    },
+    {
+      "u": "B",
+      "v": "D",
+      "capacity": 5,
+      "latency": 1
+    },
+    {
+      "u": "A",
+      "v": "C",
+      "capacity": 10,
+      "latency": 2
+    },
+    {
+      "u": "C",
+      "v": "D",
+      "capacity": 10,
+      "latency": 2
+    },
+    {
+      "u": "B",
+      "v": "C",
+      "capacity": 5,
+      "latency": 1
+    },
+    {
+      "u": "D",
+      "v": "E",
+      "capacity": 10,
+      "latency": 1
+    },
+    {
+      "u": "D",
+      "v": "F",
+      "capacity": 5,
+      "latency": 2
+    },
+    {
+      "u": "E",
+      "v": "F",
+      "capacity": 10,
+      "latency": 1
+    },
+    {
+      "u": "C",
+      "v": "E",
+      "capacity": 10,
+      "latency": 3
+    }
+  ],
+  "demands": [
+    {
+      "name": "d1",
+      "source": "A",
+      "target": "F",
+      "bandwidth": 4,
+      "priority": 3.0
+    },
+    {
+      "name": "d2",
+      "source": "A",
+      "target": "E",
+      "bandwidth": 3,
+      "priority": 1.0
+    },
+    {
+      "name": "d3",
+      "source": "B",
+      "target": "F",
+      "bandwidth": 3,
+      "priority": 1.0
+    }
+  ],
+  "solutions": [
+    {
+      "label": "latency only (λ_cong = 0)",
+      "chosen": {
+        "d1": 0,
+        "d2": 0,
+        "d3": 0
+      },
+      "paths": {
+        "d1": [
+          "A",
+          "B",
+          "D",
+          "F"
+        ],
+        "d2": [
+          "A",
+          "B",
+          "D",
+          "E"
+        ],
+        "d3": [
+          "B",
+          "D",
+          "F"
+        ]
+      },
+      "links": {
+        "A->B": {
+          "load": 7.0,
+          "utilization": 0.7,
+          "over_capacity": false
+        },
+        "B->D": {
+          "load": 10.0,
+          "utilization": 2.0,
+          "over_capacity": true
+        },
+        "A->C": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        },
+        "C->D": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        },
+        "B->C": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        },
+        "D->E": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        },
+        "D->F": {
+          "load": 7.0,
+          "utilization": 1.4,
+          "over_capacity": true
+        },
+        "E->F": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        },
+        "C->E": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        }
+      },
+      "kpis": {
+        "max_utilization": 2.0,
+        "capacity_violations": 2,
+        "weighted_latency": 34.0,
+        "total_latency": 10.0,
+        "phi_star": 1276.0972222222222,
+        "cost": 1.3990369114007093
+      }
+    },
+    {
+      "label": "quadratic, λ_cong = 1",
+      "chosen": {
+        "d1": 1,
+        "d2": 1,
+        "d3": 0
+      },
+      "paths": {
+        "d1": [
+          "A",
+          "B",
+          "D",
+          "E",
+          "F"
+        ],
+        "d2": [
+          "A",
+          "C",
+          "E"
+        ],
+        "d3": [
+          "B",
+          "D",
+          "F"
+        ]
+      },
+      "links": {
+        "A->B": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "B->D": {
+          "load": 7.0,
+          "utilization": 1.4,
+          "over_capacity": true
+        },
+        "A->C": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        },
+        "C->D": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        },
+        "B->C": {
+          "load": 0.0,
+          "utilization": 0.0,
+          "over_capacity": false
+        },
+        "D->E": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "D->F": {
+          "load": 3.0,
+          "utilization": 0.6,
+          "over_capacity": false
+        },
+        "E->F": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "C->E": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        }
+      },
+      "kpis": {
+        "max_utilization": 1.4,
+        "capacity_violations": 1,
+        "weighted_latency": 40.0,
+        "total_latency": 12.0,
+        "phi_star": 326.29166666666663,
+        "cost": 0.7539444438288654
+      }
+    },
+    {
+      "label": "quadratic, λ_cong = 5",
+      "chosen": {
+        "d1": 1,
+        "d2": 1,
+        "d3": 2
+      },
+      "paths": {
+        "d1": [
+          "A",
+          "B",
+          "D",
+          "E",
+          "F"
+        ],
+        "d2": [
+          "A",
+          "C",
+          "E"
+        ],
+        "d3": [
+          "B",
+          "C",
+          "D",
+          "F"
+        ]
+      },
+      "links": {
+        "A->B": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "B->D": {
+          "load": 4.0,
+          "utilization": 0.8,
+          "over_capacity": false
+        },
+        "A->C": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        },
+        "C->D": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        },
+        "B->C": {
+          "load": 3.0,
+          "utilization": 0.6,
+          "over_capacity": false
+        },
+        "D->E": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "D->F": {
+          "load": 3.0,
+          "utilization": 0.6,
+          "over_capacity": false
+        },
+        "E->F": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "C->E": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        }
+      },
+      "kpis": {
+        "max_utilization": 0.8,
+        "capacity_violations": 0,
+        "weighted_latency": 46.0,
+        "total_latency": 14.0,
+        "phi_star": 2.0694444444444446,
+        "cost": 0.6088890748810649
+      }
+    },
+    {
+      "label": "Fortz–Thorup fit",
+      "chosen": {
+        "d1": 1,
+        "d2": 1,
+        "d3": 2
+      },
+      "paths": {
+        "d1": [
+          "A",
+          "B",
+          "D",
+          "E",
+          "F"
+        ],
+        "d2": [
+          "A",
+          "C",
+          "E"
+        ],
+        "d3": [
+          "B",
+          "C",
+          "D",
+          "F"
+        ]
+      },
+      "links": {
+        "A->B": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "B->D": {
+          "load": 4.0,
+          "utilization": 0.8,
+          "over_capacity": false
+        },
+        "A->C": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        },
+        "C->D": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        },
+        "B->C": {
+          "load": 3.0,
+          "utilization": 0.6,
+          "over_capacity": false
+        },
+        "D->E": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "D->F": {
+          "load": 3.0,
+          "utilization": 0.6,
+          "over_capacity": false
+        },
+        "E->F": {
+          "load": 4.0,
+          "utilization": 0.4,
+          "over_capacity": false
+        },
+        "C->E": {
+          "load": 3.0,
+          "utilization": 0.3,
+          "over_capacity": false
+        }
+      },
+      "kpis": {
+        "max_utilization": 0.8,
+        "capacity_violations": 0,
+        "weighted_latency": 46.0,
+        "total_latency": 14.0,
+        "phi_star": 2.0694444444444446,
+        "cost": 0.6088890748810649
+      }
+    }
+  ]
+}
