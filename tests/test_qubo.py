@@ -201,6 +201,28 @@ def test_decode_infeasible_assignment(micro2: RoutingInstance) -> None:
     assert all(kpi.load == 0 for kpi in sol.link_kpis)
 
 
+def test_best_feasible_solution(micro2: RoutingInstance) -> None:
+    import pandas as pd
+
+    from routing_qaoa import best_feasible_solution
+
+    coeffs = compute_coefficients(micro2)
+    samples = pd.DataFrame(
+        {
+            "x": [[1, 1, 0, 0], [0, 1, 1, 0], [1, 0, 1, 0]],
+            "counts": [100, 10, 5],
+        }
+    )
+    sol, prob = best_feasible_solution(samples, micro2, coeffs, num_shots=115)
+    # min-cost feasible is (p0, p0), even though infeasible/costlier rows are more probable
+    assert sol.chosen == {"d1": 0, "d2": 0}
+    assert prob == pytest.approx(5 / 115)
+    with pytest.raises(ValueError, match="no one-hot-feasible"):
+        best_feasible_solution(
+            pd.DataFrame({"x": [[1, 1, 0, 0]], "counts": [1]}), micro2, coeffs, 1
+        )
+
+
 def test_phi_uncap_and_hop_distance(micro2: RoutingInstance) -> None:
     assert hop_distance(micro2, "A", "T") == 1  # direct link e1
     assert hop_distance(micro2, "B", "T") == 1  # direct link e5

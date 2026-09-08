@@ -197,3 +197,30 @@ def feasible_probability(
             if onehot_feasible(_bits_of(row), instance)
         )
     )
+
+
+def best_feasible_solution(
+    samples: pd.DataFrame,
+    instance: RoutingInstance,
+    coeffs: CostCoefficients,
+    num_shots: int,
+) -> tuple[RoutingSolution, float]:
+    """Postselect the routing: min-cost one-hot-feasible bitstring in the sample.
+
+    Returns (solution, sampled probability of that bitstring). This is the
+    pipeline's actual output — QAOA proposes, classical validation selects.
+    Raises ValueError if no sampled bitstring is one-hot feasible.
+    """
+    probs = _probabilities(samples, num_shots)
+    best: RoutingSolution | None = None
+    best_prob = 0.0
+    for (_, row), prob in zip(samples.iterrows(), probs):
+        bits = _bits_of(row)
+        if not onehot_feasible(bits, instance):
+            continue
+        sol = decode_bitstring(bits, instance, coeffs)
+        if best is None or sol.cost < best.cost:
+            best, best_prob = sol, float(prob)
+    if best is None:
+        raise ValueError("no one-hot-feasible bitstring in the sample")
+    return best, best_prob
