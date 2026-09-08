@@ -49,6 +49,9 @@ class QaoaConfig:
     num_shots: int = 2048
     max_iterations: int = 60
     random_seed: int | None = 42
+    # CVaR fraction for estimate_cost (Barkoutsos et al., arXiv:1907.04769):
+    # optimize the mean of the best `quantile` of sampled energies; 1.0 = plain mean.
+    quantile: float = 1.0
 
 
 def build_qaoa_main(
@@ -131,6 +134,7 @@ def run_qaoa(
             value = es.estimate_cost(
                 cost_func=lambda state: cost_fn(state[OUTPUT_VAR]),
                 parameters={"params": params.tolist()},
+                quantile=config.quantile,
             )
             objective_values.append(value)
             return value
