@@ -32,12 +32,18 @@ class Link:
 
 @dataclass(frozen=True)
 class Demand:
-    """Traffic demand k: route `bandwidth` (b_k) from `source` to `target`."""
+    """Traffic demand k: route `bandwidth` (b_k) from `source` to `target`.
+
+    `priority` (pi_k) multiplies the demand's latency cost in the objective:
+    pi_k = 1 is neutral, and only ratios between demands matter (latency is
+    spread-normalized, so a global rescale of all pi_k cancels).
+    """
 
     name: str
     source: NodeId
     target: NodeId
     bandwidth: float
+    priority: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -117,6 +123,8 @@ class RoutingInstance:
         for demand in self.demands:
             if demand.bandwidth <= 0:
                 raise ValueError(f"demand {demand.name!r} bandwidth must be > 0")
+            if demand.priority <= 0:
+                raise ValueError(f"demand {demand.name!r} priority must be > 0")
 
         if set(self.candidate_paths) != set(names):
             raise ValueError("candidate_paths keys must match demand names exactly")
