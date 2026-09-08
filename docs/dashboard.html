@@ -1,0 +1,637 @@
+<title>Routing Objective Explorer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --ground: #f2f4f7;
+    --panel: #ffffff;
+    --panel-sunk: #e7ebf1;
+    --edge: #ccd4de;
+    --ink: #1a2029;
+    --ink-dim: #5d6a7a;
+    --ink-faint: #8a95a5;
+    --accent: #1d7ea8;
+    --accent-soft: rgba(29, 126, 168, 0.12);
+    --safe: #1f8a5f;
+    --warn: #b5842c;
+    --crit: #c33b4d;
+    --link-idle: #b3bdc9;
+    --shadow: 0 1px 2px rgba(20, 30, 45, 0.08), 0 6px 18px rgba(20, 30, 45, 0.06);
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "Barlow Semi Condensed", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --ground: #10151c;
+      --panel: #19202a;
+      --panel-sunk: #131920;
+      --edge: #2b3542;
+      --ink: #e4e9ef;
+      --ink-dim: #9aa6b4;
+      --ink-faint: #6d7987;
+      --accent: #5eb3d6;
+      --accent-soft: rgba(94, 179, 214, 0.16);
+      --safe: #3fae7c;
+      --warn: #d9a441;
+      --crit: #e06072;
+      --link-idle: #3a4552;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #10151c;
+    --panel: #19202a;
+    --panel-sunk: #131920;
+    --edge: #2b3542;
+    --ink: #e4e9ef;
+    --ink-dim: #9aa6b4;
+    --ink-faint: #6d7987;
+    --accent: #5eb3d6;
+    --accent-soft: rgba(94, 179, 214, 0.16);
+    --safe: #3fae7c;
+    --warn: #d9a441;
+    --crit: #e06072;
+    --link-idle: #3a4552;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.28);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 24px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  header { display: flex; flex-direction: column; gap: 6px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .lede {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--ink-dim);
+  }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .rail { display: flex; flex-direction: column; gap: 10px; }
+
+  .rail-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .config {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    padding: 11px 13px;
+    text-align: left;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--edge);
+    border-left: 3px solid var(--link-idle);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 120ms, background 120ms;
+  }
+
+  .config:hover { border-color: var(--accent); }
+
+  .config:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .config[aria-pressed="true"] {
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .config-name { font-weight: 500; }
+
+  .config-stat {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .config[data-status="crit"] .config-stat { color: var(--crit); }
+  .config[data-status="safe"] .config-stat { color: var(--safe); }
+
+  .canvas {
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    padding: 4px 4px 0;
+    overflow: hidden;
+  }
+
+  svg { display: block; width: 100%; height: auto; }
+
+  .node-dot { fill: var(--panel-sunk); stroke: var(--ink-faint); stroke-width: 1.5; }
+  .node-label {
+    fill: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .link-line { fill: none; stroke-linecap: round; transition: stroke-width 140ms, stroke 140ms; }
+  .link-hit { fill: none; stroke: transparent; stroke-width: 22; cursor: pointer; }
+  .link-tag {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: var(--ink-dim);
+    pointer-events: none;
+  }
+  .demand-path { fill: none; stroke-width: 2.6; stroke-linecap: round; opacity: 0.95; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--edge);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 1px;
+    background: var(--edge);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .kpi {
+    background: var(--panel);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 21px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi-note { font-size: 12px; color: var(--ink-dim); }
+  .is-safe { color: var(--safe); }
+  .is-crit { color: var(--crit); }
+
+  .lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .panel h2 {
+    margin: 0;
+    padding: 11px 14px;
+    font-size: 12px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--edge);
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  th, td {
+    padding: 7px 14px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    font-weight: 500;
+    color: var(--ink-faint);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--edge);
+  }
+  tbody tr { border-bottom: 1px solid var(--panel-sunk); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr.hot { background: var(--accent-soft); }
+
+  .bar {
+    display: inline-block;
+    height: 7px;
+    min-width: 2px;
+    border-radius: 1px;
+    vertical-align: middle;
+  }
+
+  .demand-row { display: flex; align-items: baseline; gap: 9px; padding: 8px 14px; font-size: 13px; }
+  .demand-row + .demand-row { border-top: 1px solid var(--panel-sunk); }
+  .demand-key {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .demand-route { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); }
+  .demand-meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+
+  footer {
+    color: var(--ink-faint);
+    font-size: 12.5px;
+    border-top: 1px solid var(--edge);
+    padding-top: 14px;
+    max-width: 78ch;
+  }
+  footer code { font-family: var(--mono); font-size: 11.5px; color: var(--ink-dim); }
+
+  @media (max-width: 900px) {
+    .stage, .lower { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">QAOA path selection · AT&amp;T routing challenge</div>
+    <h1>Routing Objective Explorer</h1>
+    <p class="lede">
+      Same network, same three demands, four different congestion objectives in the QUBO. Each one is
+      brute-forced over all 27 one-hot assignments and scored under a single Fortz&ndash;Thorup coefficient set,
+      so the costs compare directly. Pick an objective to see which routing it prefers and what that
+      does to the links.
+    </p>
+  </header>
+
+  <div class="stage">
+    <div class="rail">
+      <div class="rail-label">Congestion objective</div>
+      <div id="configs" class="rail" role="group" aria-label="Congestion objective"></div>
+    </div>
+
+    <div class="canvas">
+      <svg id="net" viewBox="0 0 720 380" role="img" aria-label="Network topology with the selected routing"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="lower">
+    <section class="panel">
+      <h2>Links</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Link</th><th>Load</th><th>Cap</th><th>Util</th><th></th></tr>
+          </thead>
+          <tbody id="link-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Demands</h2>
+      <div id="demand-rows"></div>
+    </section>
+  </div>
+
+  <footer>
+    Utilization <em>u</em> = load / capacity; a link over 100% is drawn dashed in red. &Phi;* is the
+    Fortz&ndash;Thorup normalized congestion cost (INFOCOM 2000) &mdash; 1.0 is ideal, &ge; 10.67 counts as congested.
+    Generated from the toy instance in <code>qaoa_routing.ipynb</code> by <code>scripts/build_dashboard_data.py</code>.
+  </footer>
+</div>
+
+<script>
+  const DATA = {"nodes":[{"id":"A","x":0,"y":0.5},{"id":"B","x":1,"y":1},{"id":"C","x":1,"y":0},{"id":"D","x":2,"y":1},{"id":"E","x":2,"y":0},{"id":"F","x":3,"y":0.5}],"links":[{"u":"A","v":"B","capacity":10,"latency":1},{"u":"B","v":"D","capacity":5,"latency":1},{"u":"A","v":"C","capacity":10,"latency":2},{"u":"C","v":"D","capacity":10,"latency":2},{"u":"B","v":"C","capacity":5,"latency":1},{"u":"D","v":"E","capacity":10,"latency":1},{"u":"D","v":"F","capacity":5,"latency":2},{"u":"E","v":"F","capacity":10,"latency":1},{"u":"C","v":"E","capacity":10,"latency":3}],"demands":[{"name":"d1","source":"A","target":"F","bandwidth":4,"priority":3.0},{"name":"d2","source":"A","target":"E","bandwidth":3,"priority":1.0},{"name":"d3","source":"B","target":"F","bandwidth":3,"priority":1.0}],"solutions":[{"label":"latency only (λ_cong = 0)","chosen":{"d1":0,"d2":0,"d3":0},"paths":{"d1":["A","B","D","F"],"d2":["A","B","D","E"],"d3":["B","D","F"]},"links":{"A->B":{"load":7.0,"utilization":0.7,"over_capacity":false},"B->D":{"load":10.0,"utilization":2.0,"over_capacity":true},"A->C":{"load":0.0,"utilization":0.0,"over_capacity":false},"C->D":{"load":0.0,"utilization":0.0,"over_capacity":false},"B->C":{"load":0.0,"utilization":0.0,"over_capacity":false},"D->E":{"load":3.0,"utilization":0.3,"over_capacity":false},"D->F":{"load":7.0,"utilization":1.4,"over_capacity":true},"E->F":{"load":0.0,"utilization":0.0,"over_capacity":false},"C->E":{"load":0.0,"utilization":0.0,"over_capacity":false}},"kpis":{"max_utilization":2.0,"capacity_violations":2,"weighted_latency":34.0,"total_latency":10.0,"phi_star":1276.0972222222222,"cost":1.3990369114007093}},{"label":"quadratic, λ_cong = 1","chosen":{"d1":1,"d2":1,"d3":0},"paths":{"d1":["A","B","D","E","F"],"d2":["A","C","E"],"d3":["B","D","F"]},"links":{"A->B":{"load":4.0,"utilization":0.4,"over_capacity":false},"B->D":{"load":7.0,"utilization":1.4,"over_capacity":true},"A->C":{"load":3.0,"utilization":0.3,"over_capacity":false},"C->D":{"load":0.0,"utilization":0.0,"over_capacity":false},"B->C":{"load":0.0,"utilization":0.0,"over_capacity":false},"D->E":{"load":4.0,"utilization":0.4,"over_capacity":false},"D->F":{"load":3.0,"utilization":0.6,"over_capacity":false},"E->F":{"load":4.0,"utilization":0.4,"over_capacity":false},"C->E":{"load":3.0,"utilization":0.3,"over_capacity":false}},"kpis":{"max_utilization":1.4,"capacity_violations":1,"weighted_latency":40.0,"total_latency":12.0,"phi_star":326.29166666666663,"cost":0.7539444438288654}},{"label":"quadratic, λ_cong = 5","chosen":{"d1":1,"d2":1,"d3":2},"paths":{"d1":["A","B","D","E","F"],"d2":["A","C","E"],"d3":["B","C","D","F"]},"links":{"A->B":{"load":4.0,"utilization":0.4,"over_capacity":false},"B->D":{"load":4.0,"utilization":0.8,"over_capacity":false},"A->C":{"load":3.0,"utilization":0.3,"over_capacity":false},"C->D":{"load":3.0,"utilization":0.3,"over_capacity":false},"B->C":{"load":3.0,"utilization":0.6,"over_capacity":false},"D->E":{"load":4.0,"utilization":0.4,"over_capacity":false},"D->F":{"load":3.0,"utilization":0.6,"over_capacity":false},"E->F":{"load":4.0,"utilization":0.4,"over_capacity":false},"C->E":{"load":3.0,"utilization":0.3,"over_capacity":false}},"kpis":{"max_utilization":0.8,"capacity_violations":0,"weighted_latency":46.0,"total_latency":14.0,"phi_star":2.0694444444444446,"cost":0.6088890748810649}},{"label":"Fortz–Thorup fit","chosen":{"d1":1,"d2":1,"d3":2},"paths":{"d1":["A","B","D","E","F"],"d2":["A","C","E"],"d3":["B","C","D","F"]},"links":{"A->B":{"load":4.0,"utilization":0.4,"over_capacity":false},"B->D":{"load":4.0,"utilization":0.8,"over_capacity":false},"A->C":{"load":3.0,"utilization":0.3,"over_capacity":false},"C->D":{"load":3.0,"utilization":0.3,"over_capacity":false},"B->C":{"load":3.0,"utilization":0.6,"over_capacity":false},"D->E":{"load":4.0,"utilization":0.4,"over_capacity":false},"D->F":{"load":3.0,"utilization":0.6,"over_capacity":false},"E->F":{"load":4.0,"utilization":0.4,"over_capacity":false},"C->E":{"load":3.0,"utilization":0.3,"over_capacity":false}},"kpis":{"max_utilization":0.8,"capacity_violations":0,"weighted_latency":46.0,"total_latency":14.0,"phi_star":2.0694444444444446,"cost":0.6088890748810649}}]};
+
+  const DEMAND_COLORS = ["#4c8bf5", "#e07a3f", "#3fae7c"];
+  const W = 720, H = 380, PAD_X = 62, PAD_Y = 54;
+
+  const xs = DATA.nodes.map(n => n.x), ys = DATA.nodes.map(n => n.y);
+  const spanX = Math.max(...xs) - Math.min(...xs) || 1;
+  const spanY = Math.max(...ys) - Math.min(...ys) || 1;
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+
+  const pos = {};
+  for (const n of DATA.nodes) {
+    pos[n.id] = {
+      x: PAD_X + ((n.x - minX) / spanX) * (W - 2 * PAD_X),
+      // SVG y grows downward; flip so the layout matches the notebook figures.
+      y: H - PAD_Y - ((n.y - minY) / spanY) * (H - 2 * PAD_Y),
+    };
+  }
+
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const utilColor = (u, over) => over ? css("--crit") : u >= 0.75 ? css("--warn") : u > 0 ? css("--safe") : css("--link-idle");
+  const key = (u, v) => `${u}->${v}`;
+
+  let selected = 0;
+  let hovered = null;
+
+  /* Offset the line so opposing directions and the node circles never overlap. */
+  function geometry(u, v) {
+    const a = pos[u], b = pos[v];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const r = 19, off = 4;
+    return {
+      x1: a.x + (dx / len) * r + nx * off,
+      y1: a.y + (dy / len) * r + ny * off,
+      x2: b.x - (dx / len) * (r + 5) + nx * off,
+      y2: b.y - (dy / len) * (r + 5) + ny * off,
+      mx: (a.x + b.x) / 2 + nx * 13,
+      my: (a.y + b.y) / 2 + ny * 13,
+    };
+  }
+
+  function svgEl(tag, attrs, cls) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (cls) el.setAttribute("class", cls);
+    return el;
+  }
+
+  function drawNetwork() {
+    const sol = DATA.solutions[selected];
+    const svg = document.getElementById("net");
+    svg.textContent = "";
+
+    const defs = svgEl("defs", {});
+    const marker = svgEl("marker", {
+      id: "arrow", viewBox: "0 0 8 8", refX: "7", refY: "4",
+      markerWidth: "5", markerHeight: "5", orient: "auto-start-reverse",
+    });
+    marker.appendChild(svgEl("path", { d: "M0,0 L8,4 L0,8 z", fill: css("--ink-faint") }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    for (const link of DATA.links) {
+      const k = key(link.u, link.v);
+      const kpi = sol.links[k] || { load: 0, utilization: 0, over_capacity: false };
+      const g = geometry(link.u, link.v);
+      const isHot = hovered === k;
+      const color = utilColor(kpi.utilization, kpi.over_capacity);
+
+      const line = svgEl("line", {
+        x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2,
+        stroke: color,
+        "stroke-width": (1.6 + 4.2 * Math.min(kpi.utilization, 1.6)) * (isHot ? 1.5 : 1),
+        "marker-end": "url(#arrow)",
+      }, "link-line");
+      if (kpi.over_capacity) line.setAttribute("stroke-dasharray", "7 4");
+      svg.appendChild(line);
+
+      const label = svgEl("text", { x: g.mx, y: g.my }, "link-tag");
+      label.textContent = `${kpi.load.toFixed(0)}/${link.capacity}`;
+      if (isHot) {
+        label.setAttribute("fill", css("--ink"));
+        label.setAttribute("font-weight", "700");
+      }
+      svg.appendChild(label);
+
+      const hit = svgEl("line", { x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 }, "link-hit");
+      hit.addEventListener("mouseenter", () => { hovered = k; render(); });
+      hit.addEventListener("mouseleave", () => { hovered = null; render(); });
+      const title = svgEl("title", {});
+      title.textContent =
+        `${link.u} → ${link.v}\nload ${kpi.load} of ${link.capacity}  (${(kpi.utilization * 100).toFixed(0)}%)` +
+        `\nlatency ${link.latency}${kpi.over_capacity ? "\nOVER CAPACITY" : ""}`;
+      hit.appendChild(title);
+      svg.appendChild(hit);
+    }
+
+    // Demand routes, fanned apart so shared links stay legible.
+    DATA.demands.forEach((demand, i) => {
+      const route = sol.paths[demand.name];
+      if (!route) return;
+      const spread = (i - (DATA.demands.length - 1) / 2) * 7;
+      const pts = route.map(id => {
+        const p = pos[id];
+        return `${p.x + spread},${p.y + spread}`;
+      });
+      const path = svgEl("polyline", {
+        points: pts.join(" "),
+        stroke: DEMAND_COLORS[i % DEMAND_COLORS.length],
+      }, "demand-path");
+      svg.appendChild(path);
+    });
+
+    for (const n of DATA.nodes) {
+      svg.appendChild(svgEl("circle", { cx: pos[n.id].x, cy: pos[n.id].y, r: 18 }, "node-dot"));
+      const t = svgEl("text", { x: pos[n.id].x, y: pos[n.id].y }, "node-label");
+      t.textContent = n.id;
+      svg.appendChild(t);
+    }
+  }
+
+  function drawLegend() {
+    const el = document.getElementById("legend");
+    el.textContent = "";
+    const items = [
+      ["idle", css("--link-idle")],
+      ["under 75%", css("--safe")],
+      ["75–100%", css("--warn")],
+      ["over capacity", css("--crit")],
+    ];
+    DATA.demands.forEach((d, i) => items.push([`${d.name} (${d.source}→${d.target}, b=${d.bandwidth})`, DEMAND_COLORS[i]]));
+    for (const [label, color] of items) {
+      const span = document.createElement("span");
+      const sw = document.createElement("i");
+      sw.className = "swatch";
+      sw.style.background = color;
+      span.append(sw, document.createTextNode(label));
+      el.appendChild(span);
+    }
+  }
+
+  function drawConfigs() {
+    const el = document.getElementById("configs");
+    el.textContent = "";
+    DATA.solutions.forEach((sol, i) => {
+      const btn = document.createElement("button");
+      btn.className = "config";
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", String(i === selected));
+      btn.dataset.status = sol.kpis.capacity_violations ? "crit" : "safe";
+      const name = document.createElement("span");
+      name.className = "config-name";
+      name.textContent = sol.label;
+      const stat = document.createElement("span");
+      stat.className = "config-stat";
+      stat.textContent = sol.kpis.capacity_violations
+        ? `${sol.kpis.capacity_violations} link${sol.kpis.capacity_violations > 1 ? "s" : ""} over capacity`
+        : "all links within capacity";
+      btn.append(name, stat);
+      btn.addEventListener("click", () => { selected = i; render(); });
+      el.appendChild(btn);
+    });
+  }
+
+  function drawKpis() {
+    const k = DATA.solutions[selected].kpis;
+    const clean = k.capacity_violations === 0;
+    const tiles = [
+      ["Max utilization", `${(k.max_utilization * 100).toFixed(0)}%`, k.max_utilization > 1 ? "over capacity" : "within capacity", k.max_utilization > 1 ? "is-crit" : "is-safe"],
+      ["Violations", String(k.capacity_violations), clean ? "capacity respected" : "links over 100%", clean ? "is-safe" : "is-crit"],
+      ["Φ*", k.phi_star.toFixed(2), k.phi_star >= 32 / 3 ? "congested (≥ 10.67)" : "uncongested", k.phi_star >= 32 / 3 ? "is-crit" : "is-safe"],
+      ["Weighted latency", k.weighted_latency.toFixed(0), "Σ bandwidth × latency", ""],
+      ["Cost H(x)", k.cost.toFixed(3), "scored under FT fit", ""],
+    ];
+    const el = document.getElementById("kpis");
+    el.textContent = "";
+    for (const [label, value, note, cls] of tiles) {
+      const tile = document.createElement("div");
+      tile.className = "kpi";
+      const l = document.createElement("div"); l.className = "kpi-label"; l.textContent = label;
+      const v = document.createElement("div"); v.className = `kpi-value ${cls}`.trim(); v.textContent = value;
+      const n = document.createElement("div"); n.className = "kpi-note"; n.textContent = note;
+      tile.append(l, v, n);
+      el.appendChild(tile);
+    }
+  }
+
+  function drawTables() {
+    const sol = DATA.solutions[selected];
+    const body = document.getElementById("link-rows");
+    body.textContent = "";
+    const ranked = [...DATA.links].sort((a, b) =>
+      (sol.links[key(b.u, b.v)]?.utilization ?? 0) - (sol.links[key(a.u, a.v)]?.utilization ?? 0));
+
+    for (const link of ranked) {
+      const k = key(link.u, link.v);
+      const kpi = sol.links[k] || { load: 0, utilization: 0, over_capacity: false };
+      const tr = document.createElement("tr");
+      if (hovered === k) tr.className = "hot";
+      const cells = [
+        `${link.u}→${link.v}`,
+        kpi.load.toFixed(0),
+        String(link.capacity),
+        `${(kpi.utilization * 100).toFixed(0)}%`,
+      ];
+      for (const text of cells) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr.appendChild(td);
+      }
+      tr.lastChild.style.color = utilColor(kpi.utilization, kpi.over_capacity);
+      const barCell = document.createElement("td");
+      const bar = document.createElement("i");
+      bar.className = "bar";
+      bar.style.width = `${Math.min(kpi.utilization, 2) * 42}px`;
+      bar.style.background = utilColor(kpi.utilization, kpi.over_capacity);
+      barCell.appendChild(bar);
+      tr.appendChild(barCell);
+      tr.addEventListener("mouseenter", () => { hovered = k; render(); });
+      tr.addEventListener("mouseleave", () => { hovered = null; render(); });
+      body.appendChild(tr);
+    }
+
+    const dem = document.getElementById("demand-rows");
+    dem.textContent = "";
+    DATA.demands.forEach((demand, i) => {
+      const route = sol.paths[demand.name];
+      const row = document.createElement("div");
+      row.className = "demand-row";
+      const key_ = document.createElement("span");
+      key_.className = "demand-key";
+      key_.style.color = DEMAND_COLORS[i % DEMAND_COLORS.length];
+      key_.textContent = demand.name;
+      const path = document.createElement("span");
+      path.className = "demand-route";
+      path.textContent = route ? route.join(" → ") : "unsatisfied";
+      const meta = document.createElement("span");
+      meta.className = "demand-meta";
+      meta.textContent = `b=${demand.bandwidth}${demand.priority !== 1 ? ` · π=${demand.priority}` : ""} · path ${sol.chosen[demand.name]}`;
+      row.append(key_, path, meta);
+      dem.appendChild(row);
+    });
+  }
+
+  function render() {
+    drawConfigs();
+    drawNetwork();
+    drawKpis();
+    drawTables();
+  }
+
+  drawLegend();
+  render();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawLegend(); render(); });
+</script>
