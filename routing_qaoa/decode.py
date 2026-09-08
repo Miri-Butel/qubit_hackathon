@@ -139,7 +139,8 @@ def decode_bitstring(
     )
 
 
-def _probabilities(samples: pd.DataFrame, num_shots: int) -> pd.Series:
+def sample_probabilities(samples: pd.DataFrame, num_shots: int) -> pd.Series:
+    """Per-row sampled probability, from either a `probability` or `counts` column."""
     if "probability" in samples.columns:
         return samples["probability"]
     if "counts" in samples.columns:
@@ -149,7 +150,8 @@ def _probabilities(samples: pd.DataFrame, num_shots: int) -> pd.Series:
     )
 
 
-def _bits_of(row: pd.Series) -> list[int]:
+def bits_of(row: pd.Series) -> list[int]:
+    """The bitstring of one sample row, as a list of ints."""
     if "x" not in row:
         raise ValueError(f"samples row has no 'x' column; columns: {list(row.index)}")
     return [int(b) for b in row["x"]]
@@ -163,11 +165,11 @@ def top_solutions(
     k: int = 10,
 ) -> pd.DataFrame:
     """Decode the k most-sampled bitstrings into a KPI table, most probable first."""
-    ranked = samples.assign(_prob=_probabilities(samples, num_shots))
+    ranked = samples.assign(_prob=sample_probabilities(samples, num_shots))
     ranked = ranked.sort_values("_prob", ascending=False).head(k)
     rows = []
     for _, row in ranked.iterrows():
-        bits = _bits_of(row)
+        bits = bits_of(row)
         sol = decode_bitstring(bits, instance, coeffs)
         rows.append(
             {
@@ -189,12 +191,12 @@ def feasible_probability(
     samples: pd.DataFrame, instance: RoutingInstance, num_shots: int
 ) -> float:
     """Total probability mass on one-hot-feasible bitstrings."""
-    probs = _probabilities(samples, num_shots)
+    probs = sample_probabilities(samples, num_shots)
     return float(
         sum(
             prob
             for (_, row), prob in zip(samples.iterrows(), probs)
-            if onehot_feasible(_bits_of(row), instance)
+            if onehot_feasible(bits_of(row), instance)
         )
     )
 
@@ -211,11 +213,11 @@ def best_feasible_solution(
     pipeline's actual output — QAOA proposes, classical validation selects.
     Raises ValueError if no sampled bitstring is one-hot feasible.
     """
-    probs = _probabilities(samples, num_shots)
+    probs = sample_probabilities(samples, num_shots)
     best: RoutingSolution | None = None
     best_prob = 0.0
     for (_, row), prob in zip(samples.iterrows(), probs):
-        bits = _bits_of(row)
+        bits = bits_of(row)
         if not onehot_feasible(bits, instance):
             continue
         sol = decode_bitstring(bits, instance, coeffs)
