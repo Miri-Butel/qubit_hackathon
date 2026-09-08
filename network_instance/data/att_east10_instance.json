@@ -1,0 +1,650 @@
+{
+  "name": "att-east10",
+  "description": "REAL AT&T MPLS backbone, east10 region: 10 PoPs / 18 links / 5 demands",
+  "provenance": {
+    "topology": "Internet Topology Zoo, AttMpls.gml (AT&T North America MPLS backbone, from AT&T's published Domestic_OC-768_Network.pdf)",
+    "real": [
+      "PoP identities",
+      "PoP coordinates",
+      "which links exist"
+    ],
+    "derived": [
+      "link delay, from great-circle distance x 1.5 fibre detour x 5us/km"
+    ],
+    "synthesized": [
+      "link capacity (OC-768 units)",
+      "operational cost",
+      "traffic matrix (gravity model on metro population)"
+    ]
+  },
+  "links": [
+    {
+      "u": "NY54",
+      "v": "CMBR",
+      "capacity": 80.0,
+      "latency": 2.3,
+      "cost": 1.0
+    },
+    {
+      "u": "CMBR",
+      "v": "NY54",
+      "capacity": 80.0,
+      "latency": 2.3,
+      "cost": 1.0
+    },
+    {
+      "u": "NY54",
+      "v": "CHCG",
+      "capacity": 120.0,
+      "latency": 8.6,
+      "cost": 3.0
+    },
+    {
+      "u": "CHCG",
+      "v": "NY54",
+      "capacity": 120.0,
+      "latency": 8.6,
+      "cost": 3.0
+    },
+    {
+      "u": "NY54",
+      "v": "PHLA",
+      "capacity": 80.0,
+      "latency": 1.0,
+      "cost": 1.0
+    },
+    {
+      "u": "PHLA",
+      "v": "NY54",
+      "capacity": 80.0,
+      "latency": 1.0,
+      "cost": 1.0
+    },
+    {
+      "u": "NY54",
+      "v": "WASH",
+      "capacity": 80.0,
+      "latency": 2.5,
+      "cost": 1.0
+    },
+    {
+      "u": "WASH",
+      "v": "NY54",
+      "capacity": 80.0,
+      "latency": 2.5,
+      "cost": 1.0
+    },
+    {
+      "u": "CMBR",
+      "v": "PHLA",
+      "capacity": 80.0,
+      "latency": 3.3,
+      "cost": 1.0
+    },
+    {
+      "u": "PHLA",
+      "v": "CMBR",
+      "capacity": 80.0,
+      "latency": 3.3,
+      "cost": 1.0
+    },
+    {
+      "u": "CHCG",
+      "v": "CLEV",
+      "capacity": 120.0,
+      "latency": 3.7,
+      "cost": 1.0
+    },
+    {
+      "u": "CLEV",
+      "v": "CHCG",
+      "capacity": 120.0,
+      "latency": 3.7,
+      "cost": 1.0
+    },
+    {
+      "u": "CHCG",
+      "v": "PHLA",
+      "capacity": 160.0,
+      "latency": 8.0,
+      "cost": 3.0
+    },
+    {
+      "u": "PHLA",
+      "v": "CHCG",
+      "capacity": 160.0,
+      "latency": 8.0,
+      "cost": 3.0
+    },
+    {
+      "u": "CHCG",
+      "v": "STLS",
+      "capacity": 160.0,
+      "latency": 3.1,
+      "cost": 1.0
+    },
+    {
+      "u": "STLS",
+      "v": "CHCG",
+      "capacity": 160.0,
+      "latency": 3.1,
+      "cost": 1.0
+    },
+    {
+      "u": "CLEV",
+      "v": "PHLA",
+      "capacity": 80.0,
+      "latency": 4.3,
+      "cost": 1.0
+    },
+    {
+      "u": "PHLA",
+      "v": "CLEV",
+      "capacity": 80.0,
+      "latency": 4.3,
+      "cost": 1.0
+    },
+    {
+      "u": "CLEV",
+      "v": "NSVL",
+      "capacity": 80.0,
+      "latency": 5.5,
+      "cost": 2.0
+    },
+    {
+      "u": "NSVL",
+      "v": "CLEV",
+      "capacity": 80.0,
+      "latency": 5.5,
+      "cost": 2.0
+    },
+    {
+      "u": "CLEV",
+      "v": "STLS",
+      "capacity": 120.0,
+      "latency": 5.9,
+      "cost": 2.0
+    },
+    {
+      "u": "STLS",
+      "v": "CLEV",
+      "capacity": 120.0,
+      "latency": 5.9,
+      "cost": 2.0
+    },
+    {
+      "u": "RLGH",
+      "v": "ATLN",
+      "capacity": 80.0,
+      "latency": 4.3,
+      "cost": 1.0
+    },
+    {
+      "u": "ATLN",
+      "v": "RLGH",
+      "capacity": 80.0,
+      "latency": 4.3,
+      "cost": 1.0
+    },
+    {
+      "u": "RLGH",
+      "v": "WASH",
+      "capacity": 80.0,
+      "latency": 2.8,
+      "cost": 1.0
+    },
+    {
+      "u": "WASH",
+      "v": "RLGH",
+      "capacity": 80.0,
+      "latency": 2.8,
+      "cost": 1.0
+    },
+    {
+      "u": "ATLN",
+      "v": "WASH",
+      "capacity": 80.0,
+      "latency": 6.5,
+      "cost": 2.0
+    },
+    {
+      "u": "WASH",
+      "v": "ATLN",
+      "capacity": 80.0,
+      "latency": 6.5,
+      "cost": 2.0
+    },
+    {
+      "u": "ATLN",
+      "v": "NSVL",
+      "capacity": 80.0,
+      "latency": 2.6,
+      "cost": 1.0
+    },
+    {
+      "u": "NSVL",
+      "v": "ATLN",
+      "capacity": 80.0,
+      "latency": 2.6,
+      "cost": 1.0
+    },
+    {
+      "u": "ATLN",
+      "v": "STLS",
+      "capacity": 120.0,
+      "latency": 5.6,
+      "cost": 2.0
+    },
+    {
+      "u": "STLS",
+      "v": "ATLN",
+      "capacity": 120.0,
+      "latency": 5.6,
+      "cost": 2.0
+    },
+    {
+      "u": "PHLA",
+      "v": "WASH",
+      "capacity": 80.0,
+      "latency": 1.5,
+      "cost": 1.0
+    },
+    {
+      "u": "WASH",
+      "v": "PHLA",
+      "capacity": 80.0,
+      "latency": 1.5,
+      "cost": 1.0
+    },
+    {
+      "u": "NSVL",
+      "v": "STLS",
+      "capacity": 120.0,
+      "latency": 3.1,
+      "cost": 1.0
+    },
+    {
+      "u": "STLS",
+      "v": "NSVL",
+      "capacity": 120.0,
+      "latency": 3.1,
+      "cost": 1.0
+    }
+  ],
+  "demands": [
+    {
+      "name": "T1",
+      "source": "NY54",
+      "target": "CHCG",
+      "bandwidth": 84.0,
+      "latency_bound": 14.0,
+      "priority": "high",
+      "needs_backup": true
+    },
+    {
+      "name": "T2",
+      "source": "PHLA",
+      "target": "WASH",
+      "bandwidth": 56.0,
+      "latency_bound": 6.0,
+      "priority": "medium",
+      "needs_backup": false
+    },
+    {
+      "name": "T3",
+      "source": "CMBR",
+      "target": "ATLN",
+      "bandwidth": 56.0,
+      "latency_bound": 18.0,
+      "priority": "medium",
+      "needs_backup": false
+    },
+    {
+      "name": "T4",
+      "source": "CLEV",
+      "target": "STLS",
+      "bandwidth": 25.0,
+      "latency_bound": 11.0,
+      "priority": "low",
+      "needs_backup": false
+    },
+    {
+      "name": "T5",
+      "source": "RLGH",
+      "target": "NSVL",
+      "bandwidth": 20.0,
+      "latency_bound": 12.0,
+      "priority": "low",
+      "needs_backup": false
+    }
+  ],
+  "candidate_paths": {
+    "T1": [
+      {
+        "nodes": [
+          "NY54",
+          "CHCG"
+        ],
+        "links": [
+          [
+            "NY54",
+            "CHCG"
+          ]
+        ],
+        "delay": 8.6,
+        "cost": 3,
+        "hops": 1,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops",
+          "spare"
+        ]
+      },
+      {
+        "nodes": [
+          "NY54",
+          "PHLA",
+          "CHCG"
+        ],
+        "links": [
+          [
+            "NY54",
+            "PHLA"
+          ],
+          [
+            "PHLA",
+            "CHCG"
+          ]
+        ],
+        "delay": 9.0,
+        "cost": 4,
+        "hops": 2,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops"
+        ]
+      },
+      {
+        "nodes": [
+          "NY54",
+          "WASH",
+          "PHLA",
+          "CLEV",
+          "CHCG"
+        ],
+        "links": [
+          [
+            "NY54",
+            "WASH"
+          ],
+          [
+            "WASH",
+            "PHLA"
+          ],
+          [
+            "PHLA",
+            "CLEV"
+          ],
+          [
+            "CLEV",
+            "CHCG"
+          ]
+        ],
+        "delay": 12.0,
+        "cost": 4,
+        "hops": 4,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay"
+        ]
+      }
+    ],
+    "T2": [
+      {
+        "nodes": [
+          "PHLA",
+          "WASH"
+        ],
+        "links": [
+          [
+            "PHLA",
+            "WASH"
+          ]
+        ],
+        "delay": 1.5,
+        "cost": 1,
+        "hops": 1,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops",
+          "spare"
+        ]
+      },
+      {
+        "nodes": [
+          "PHLA",
+          "NY54",
+          "WASH"
+        ],
+        "links": [
+          [
+            "PHLA",
+            "NY54"
+          ],
+          [
+            "NY54",
+            "WASH"
+          ]
+        ],
+        "delay": 3.5,
+        "cost": 2,
+        "hops": 2,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops"
+        ]
+      }
+    ],
+    "T3": [
+      {
+        "nodes": [
+          "CMBR",
+          "NY54",
+          "WASH",
+          "ATLN"
+        ],
+        "links": [
+          [
+            "CMBR",
+            "NY54"
+          ],
+          [
+            "NY54",
+            "WASH"
+          ],
+          [
+            "WASH",
+            "ATLN"
+          ]
+        ],
+        "delay": 11.3,
+        "cost": 4,
+        "hops": 3,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops"
+        ]
+      },
+      {
+        "nodes": [
+          "CMBR",
+          "PHLA",
+          "WASH",
+          "RLGH",
+          "ATLN"
+        ],
+        "links": [
+          [
+            "CMBR",
+            "PHLA"
+          ],
+          [
+            "PHLA",
+            "WASH"
+          ],
+          [
+            "WASH",
+            "RLGH"
+          ],
+          [
+            "RLGH",
+            "ATLN"
+          ]
+        ],
+        "delay": 11.9,
+        "cost": 4,
+        "hops": 4,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay"
+        ]
+      }
+    ],
+    "T4": [
+      {
+        "nodes": [
+          "CLEV",
+          "STLS"
+        ],
+        "links": [
+          [
+            "CLEV",
+            "STLS"
+          ]
+        ],
+        "delay": 5.9,
+        "cost": 2,
+        "hops": 1,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops",
+          "spare"
+        ]
+      },
+      {
+        "nodes": [
+          "CLEV",
+          "CHCG",
+          "STLS"
+        ],
+        "links": [
+          [
+            "CLEV",
+            "CHCG"
+          ],
+          [
+            "CHCG",
+            "STLS"
+          ]
+        ],
+        "delay": 6.8,
+        "cost": 2,
+        "hops": 2,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops",
+          "spare"
+        ]
+      }
+    ],
+    "T5": [
+      {
+        "nodes": [
+          "RLGH",
+          "ATLN",
+          "NSVL"
+        ],
+        "links": [
+          [
+            "RLGH",
+            "ATLN"
+          ],
+          [
+            "ATLN",
+            "NSVL"
+          ]
+        ],
+        "delay": 6.9,
+        "cost": 2,
+        "hops": 2,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops",
+          "spare"
+        ]
+      },
+      {
+        "nodes": [
+          "RLGH",
+          "WASH",
+          "ATLN",
+          "NSVL"
+        ],
+        "links": [
+          [
+            "RLGH",
+            "WASH"
+          ],
+          [
+            "WASH",
+            "ATLN"
+          ],
+          [
+            "ATLN",
+            "NSVL"
+          ]
+        ],
+        "delay": 11.9,
+        "cost": 4,
+        "hops": 3,
+        "within_latency": true,
+        "found_by": [
+          "cost",
+          "delay",
+          "hops",
+          "spare"
+        ]
+      }
+    ]
+  },
+  "current_routing": {
+    "T1": 0,
+    "T2": 0,
+    "T3": 0,
+    "T4": 0,
+    "T5": 0
+  },
+  "notes": {
+    "links_directed": "each undirected fibre span is emitted in both directions with equal capacity (full duplex)",
+    "latency_enforced_upstream": "only routes within each demand's latency_bound are exported",
+    "protection_not_representable": "routing_qaoa selects one path per demand, so 1+1 protection is dropped; see needs_backup flags"
+  }
+}
