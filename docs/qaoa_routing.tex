@@ -43,7 +43,8 @@ in-Hamiltonian congestion profile and as an instance-independent KPI.
 A communication network is a directed graph $G=(V,E)$ whose links $e \in E$
 have finite capacity $c_e > 0$ and latency $\ell_e \ge 0$. Traffic consists of
 $K$ demands: demand $k$ must route bandwidth $b_k > 0$ from source $s_k$ to
-target $t_k$. The goal is to select routes that use resources efficiently
+target $t_k$, and carries a service-class priority $\pi_k > 0$ ($\pi_k = 1$ by
+default). The goal is to select routes that use resources efficiently
 while avoiding congestion and holding service quality --- the challenge KPIs
 are congestion relief on the most loaded links, low average latency, high
 demand satisfaction, few route changes against the current state, and zero
@@ -116,13 +117,15 @@ $H_{\onehot} = 0$ exactly on one-hot assignments; the smallest violation
 (zero or two selected paths for some demand) costs $1$.
 
 \paragraph{Latency objective.}
-The raw cost of routing demand $k$ on path $p$ is bandwidth-weighted by
-default,
+The raw cost of routing demand $k$ on path $p$ is priority- and
+bandwidth-weighted by default,
 \begin{equation}
-  L_{k,p} \;=\; b_k \sum_{e \in p} \ell_e
-  \qquad \text{(optionally unweighted: } L_{k,p} = \textstyle\sum_{e\in p}\ell_e\text{)},
+  L_{k,p} \;=\; \pi_k\, b_k \sum_{e \in p} \ell_e
+  \qquad \text{(optionally unweighted: } L_{k,p} = \pi_k \textstyle\sum_{e\in p}\ell_e\text{)},
 \end{equation}
-so that a 10\,Gbps demand on a slow path costs ten times a 1\,Gbps demand.
+so that a 10\,Gbps demand on a slow path costs ten times a 1\,Gbps demand, and
+a demand with $\pi_k > 1$ pulls proportionally harder toward its low-latency
+candidates when several demands contend for the same link.
 Latencies are normalized so that the spread of the latency term over the
 feasible (one-hot) space equals a single tunable scale $c_{\mathrm{scale}}$:
 \begin{equation}
@@ -135,6 +138,16 @@ where $L^{\min} = \sum_k \min_{p} L_{k,p}$ and
 $L^{\max} = \sum_k \max_{p} L_{k,p}$ are the exact feasible-space extremes
 (the latency term is separable per demand), and $\varepsilon$ guards a
 degenerate zero spread.
+
+Because the priorities enter $L_{k,p}$ before the extremes are taken, the
+normalization is priority-aware: the feasible-space latency spread is exactly
+$c_{\mathrm{scale}}$ for any $\{\pi_k\}$, and a global rescale
+$\pi_k \mapsto c\,\pi_k$ cancels in \eqref{eq:latnorm} --- only the ratios
+between demands are meaningful. Raising a single $\pi_k$ therefore reallocates
+a fixed latency budget toward demand $k$ rather than inflating
+$\widetilde{H}_{\lat}$ against $\lambda_{\cng}$; the other demands' latency
+preferences weaken relative to congestion, which is the intended service-class
+semantics.
 
 \paragraph{Congestion (soft capacity).}
 The utilization of link $e$ is linear in $x$,
@@ -154,6 +167,10 @@ links that appear in at least one candidate path:
     \alpha u + \beta u^{2} & \text{\texttt{fortz-thorup-fit}}.
   \end{cases}
 \end{equation}
+Priorities are deliberately absent from $u_e$: link utilization is a physical
+quantity, and the Fortz--Thorup calibration below is fitted against real
+loads, so weighting them by service class would distort both the congestion
+penalty and the reported KPIs.
 No slack qubits and no hard capacity constraint are used: the quadratic
 profile penalizes congestion smoothly and pushes solutions under capacity,
 while hard feasibility is verified classically at decode time
@@ -227,9 +244,12 @@ $\lambda_{\cng}$          & $1.0$ & congestion weight \\
 $\lambda_{\switch}$        & $0.0$ & route-change weight (off) \\
 $c_{\mathrm{scale}}$       & $1.0$ & overall objective scale \\
 congestion profile         & \texttt{quadratic} & $g(u)$ in \eqref{eq:cong} \\
+$\pi_k$ (per demand)       & $1.0$ & service-class priority: latency multiplier \\
 \bottomrule
 \end{tabular}
-\caption{Default Hamiltonian weights.}
+\caption{Default Hamiltonian weights. All but $\pi_k$ are global knobs on
+\texttt{QuboWeights}; the priority $\pi_k$ is per-demand data carried on
+\texttt{Demand}.}
 \label{tab:weights}
 \end{table}
 
@@ -361,16 +381,16 @@ C$\to$E & 10 & 3 \\
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\textwidth}
 \centering
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-Demand & $s_k$ & $t_k$ & $b_k$ \\
+Demand & $s_k$ & $t_k$ & $b_k$ & $\pi_k$ \\
 \midrule
-$d_1$ & A & F & 4 \\
-$d_2$ & A & E & 3 \\
-$d_3$ & B & F & 3 \\
+$d_1$ & A & F & 4 & 3 \\
+$d_2$ & A & E & 3 & 1 \\
+$d_3$ & B & F & 3 & 1 \\
 \bottomrule
 \end{tabular}
-\caption{Traffic demands.}
+\caption{Traffic demands ($d_1$ is a premium class).}
 \label{tab:demands}
 \end{minipage}
 \end{table}
@@ -379,11 +399,11 @@ $d_3$ & B & F & 3 \\
 \centering
 \begin{tabular}{clclcc}
 \toprule
-Qubit & Demand & $p$ & Path & $\sum_{e\in p}\ell_e$ & $L_{k,p} = b_k \ell(p)$ \\
+Qubit & Demand & $p$ & Path & $\sum_{e\in p}\ell_e$ & $L_{k,p} = \pi_k b_k \ell(p)$ \\
 \midrule
-$x_0$ & $d_1$ & 0 & A--B--D--F     & 4 & 16 \\
-$x_1$ & $d_1$ & 1 & A--B--D--E--F  & 4 & 16 \\
-$x_2$ & $d_1$ & 2 & A--C--D--F     & 6 & 24 \\
+$x_0$ & $d_1$ & 0 & A--B--D--F     & 4 & 48 \\
+$x_1$ & $d_1$ & 1 & A--B--D--E--F  & 4 & 48 \\
+$x_2$ & $d_1$ & 2 & A--C--D--F     & 6 & 72 \\
 $x_3$ & $d_2$ & 0 & A--B--D--E     & 3 & 9  \\
 $x_4$ & $d_2$ & 1 & A--C--E        & 5 & 15 \\
 $x_5$ & $d_2$ & 2 & A--B--C--E     & 5 & 15 \\
@@ -397,8 +417,8 @@ $o_3 = 6$).}
 \label{tab:indexmap}
 \end{table}
 
-The normalization constants evaluate to $L^{\min} = 34$, $L^{\max} = 54$,
-hence $s_{\lat} = 1/20 = 0.05$; all $m_{\used} = 9$ links are crossed by some
+The normalization constants evaluate to $L^{\min} = 66$, $L^{\max} = 102$,
+hence $s_{\lat} = 1/36 \approx 0.0278$; all $m_{\used} = 9$ links are crossed by some
 candidate path, so the congestion prefactor is
 $\lambda_{\cng} c_{\mathrm{scale}} / m_{\used} = 1/9$; the scaled one-hot
 weight is $4$. The uncapacitated Fortz--Thorup bound is
@@ -422,9 +442,9 @@ Cap.\ viol. & $\sum_k b_k \ell(p_k)$ & $\Phi^{*}$ \\
 off ($\lambda_{\cng}=0$)
   & (A--B--D--F,\; A--B--D--E,\; B--D--F) & 2.00 & 2 & 34 & 1276.1 \\
 \texttt{quadratic} (default)
-  & (A--B--D--E--F,\; A--B--D--E,\; B--D--F) & 2.00 & 1 & 34 & 952.0 \\
+  & (A--B--D--E--F,\; A--C--E,\; B--D--F) & 1.40 & 1 & 40 & 326.3 \\
 \texttt{fortz-thorup-fit}
-  & (A--C--D--F,\; A--C--E,\; B--D--E--F) & \textbf{0.80} & \textbf{0} & 48 & \textbf{2.08} \\
+  & (A--B--D--E--F,\; A--C--E,\; B--C--D--F) & \textbf{0.80} & \textbf{0} & 46 & \textbf{2.07} \\
 \bottomrule
 \end{tabular}
 \caption{Exact optimum of $H$ under three congestion settings (all other
@@ -437,16 +457,30 @@ The example is built so the pure-latency optimum overloads shared links: all
 three demands prefer the cheap corridor through B$\to$D (capacity~5), which
 with $\lambda_{\cng} = 0$ carries load $10$ ($u = 2.0$) alongside a second
 violation on D$\to$F. Switching on the default quadratic term changes the
-optimum (it reroutes $d_1$ off D$\to$F, halving the Fortz--Thorup cost) ---
-the congestion term demonstrably reshapes the routing --- but at
+optimum --- the congestion term demonstrably reshapes the routing --- but at
 $\lambda_{\cng} = 1$ the latency term still dominates and B$\to$D stays
 overloaded. The Fortz--Thorup-calibrated profile ($\beta \approx 16.73$)
 prices overload realistically and drives the optimum to a fully feasible
 routing: zero capacity violations, maximum utilization $0.80$, and
-$\Phi^{*} = 2.08$ (well below the congestion threshold $32/3$), bought with
-$+41\%$ bandwidth-weighted latency ($34 \to 48$). This is exactly the
+$\Phi^{*} = 2.07$ (well below the congestion threshold $32/3$), bought with
+$+35\%$ bandwidth-weighted latency ($34 \to 46$). This is exactly the
 congestion-relief-versus-latency trade-off of the challenge KPIs, exposed
 through the $\lambda_{\cng}$ / profile knobs.
+
+\paragraph{Effect of the priority.}
+The contention that $\pi_k$ resolves is between $d_1$ and $d_3$: both want
+B$\to$D, whose capacity~5 cannot carry $b_1 + b_3 = 7$, so exactly one of them
+takes a low-latency route and the other detours. At neutral priorities
+($\pi_k \equiv 1$) the feasible optimum routes $d_3$ over B--D--E--F and pushes
+the premium demand onto A--C--D--F ($\ell = 6$), for a bandwidth-weighted
+latency of $48$ and $\Phi^{*} = 2.08$. Raising $\pi_1$ to $2$ flips the
+decision, and it stays flipped for every larger value tested (up to $\pi_1 =
+8$), so the demo does not sit on a knife edge: $d_1$ takes A--B--D--E--F
+($\ell = 4$) while $d_3$ detours over B--C--D--F ($\ell = 5$). Both routings
+are capacity-clean, so this is a genuine preference change rather than a
+feasibility artifact --- $\Phi^{*}$ moves only from $2.08$ to $2.07$ and the
+maximum utilization is $0.80$ either way, while the premium demand's own
+latency drops by a third.
 
 \subsection{QAOA run}
 
@@ -472,7 +506,9 @@ gap widens with the network. The price is the classical restriction to
 candidate sets --- path quality is bounded by step~2 of the pipeline.
 
 \paragraph{Knobs.} $\lambda_{\cng}$ and the congestion profile trade latency
-against congestion relief (Table~\ref{tab:results}); $\lambda_{\switch}$ with
+against congestion relief (Table~\ref{tab:results}); the per-demand priorities
+$\pi_k$ arbitrate between demands competing for the same scarce link, without
+touching the physical congestion model; $\lambda_{\switch}$ with
 a current routing penalizes unnecessary route changes;
 $c_{\mathrm{scale}}$, layer count $L$, shots, and iteration budget control the
 QAOA itself.

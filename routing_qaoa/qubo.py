@@ -4,7 +4,7 @@ H = lambda_onehot * H_onehot + H_lat + lambda_cong * H_cong + lambda_switch * H_
 
 with x_{k,p} in {0,1} selecting candidate path p for demand k:
     H_onehot = sum_k (sum_p x_{k,p} - 1)^2                  (exactly one path per demand)
-    H_lat    = sum_{k,p} scale_lat * L_{k,p} * x_{k,p}      (L_{k,p} = b_k * lat(p) by default)
+    H_lat    = sum_{k,p} scale_lat * L_{k,p} * x_{k,p}      (L_{k,p} = pi_k * b_k * lat(p) by default)
     H_cong   = (1/m_used) * sum_e g(u_e),  u_e = sum_{(k,p): e in p} (b_k / c_e) * x_{k,p}
     H_switch = sum_{k in current} sum_{p != p_cur(k)} x_{k,p}
 
@@ -112,12 +112,16 @@ def compute_coefficients(
     n = instance.num_qubits
     linear = [0.0] * n
 
-    # Latency: L_{k,p} = b_k * lat(p) (or lat(p)), scaled so the feasible-space
-    # spread [sum_k min_p, sum_k max_p] equals cost_scale.
+    # Latency: L_{k,p} = pi_k * b_k * lat(p) (or pi_k * lat(p)), scaled so the
+    # feasible-space spread [sum_k min_p, sum_k max_p] equals cost_scale. The
+    # priority pi_k enters before lo/hi accumulate, so the spread invariant
+    # holds for any priorities and a global rescale of all pi_k cancels.
     lat_raw = [0.0] * n
     lo, hi = 0.0, 0.0
     for k, demand in enumerate(instance.demands):
-        weight = demand.bandwidth if weights.bandwidth_weighted_latency else 1.0
+        weight = demand.priority * (
+            demand.bandwidth if weights.bandwidth_weighted_latency else 1.0
+        )
         costs = [
             weight * instance.path_latency(k, p)
             for p in range(len(instance.paths_of(k)))
@@ -133,6 +137,8 @@ def compute_coefficients(
 
     # Congestion: per used link e, u_e = sum (b_k / c_e) x_i; contributes
     # cong_scale * u_e^2 (+ folded linear alpha term for the Fortz-Thorup fit).
+    # Priority is deliberately absent here: u_e is physical link utilization,
+    # and the Fortz-Thorup fit is calibrated against real loads.
     incidence: dict[LinkKey, list[tuple[int, float]]] = {}
     for k, demand in enumerate(instance.demands):
         for p, path in enumerate(instance.paths_of(k)):
