@@ -133,8 +133,8 @@ REGION_DEFAULTS = {
     #
     # At 0.3 the demands compete instead of individually overflowing. Today's
     # shortest-path routing drives one link to 105% of capacity; a clean
-    # assignment exists and peaks at 90%; and only 112 of the 16384 assignments
-    # are clean at all (0.7%), so finding one is real work. Same 28 qubits.
+    # assignment exists and peaks at 90%; and only 288 of the 16384 assignments
+    # are clean at all (1.8%), so finding one is real work. Same 28 qubits.
     #
     # Measured limit, worth knowing before promising a quantum result here:
     # with D demands choosing between 2 routes each, the one-hot feasible

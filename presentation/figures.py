@@ -42,17 +42,19 @@ def load_json(name):
 # --------------------------------------------------------------------------
 # instance construction (cheap, classical, deterministic)
 # --------------------------------------------------------------------------
-def real_instance(region=HERO_REGION):
-    import att_real as A
+def real_instance(region=HERO_REGION, diversity=0.5):
+    """Hero instance, built through the same entry point the scripts use."""
     import export
-    import yen
+    import qaoa_instance
 
     from routing_qaoa import QuboWeights, brute_force_feasible, compute_coefficients
     from routing_qaoa import decode_bitstring
 
-    inst = A.att_backbone(region=region)
-    candidates = yen.budgeted_candidate_set(inst, k=5, base=2)
-    instance, _ = export.to_routing_instance(inst, candidates)
+    instance, _, context = qaoa_instance.build(
+        region=region, target_qubits=28, diversity=diversity
+    )
+    inst = context["source_instance"]
+    candidates = context["candidates"]
     weights = QuboWeights(congestion_profile="fortz-thorup-perlink")
     coeffs = compute_coefficients(instance, weights)
     ref = brute_force_feasible(instance, weights)

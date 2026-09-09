@@ -79,15 +79,13 @@ def toy_instance() -> tuple[RoutingInstance, QuboWeights]:
     return RoutingInstance(TOY_LINKS, TOY_DEMANDS, paths), weights
 
 
-def real_instance(region: str) -> tuple[RoutingInstance, QuboWeights]:
-    import att_real as A
-    import export
-    import yen
+def real_instance(region: str, diversity: float = 0.5
+                  ) -> tuple[RoutingInstance, QuboWeights]:
+    import qaoa_instance
 
-    inst = A.att_backbone(region=region)
-    extra = 2 if region == "east10" else 0
-    candidates = yen.budgeted_candidate_set(inst, k=5, base=2, extra_for=extra)
-    instance, _ = export.to_routing_instance(inst, candidates)
+    instance, _, _ = qaoa_instance.build(
+        region=region, target_qubits=28, diversity=diversity
+    )
     # The per-link profile is what keeps the capacity cliff in the QUBO; the
     # single global quadratic leaves the peak link over capacity.
     return instance, QuboWeights(congestion_profile="fortz-thorup-perlink")

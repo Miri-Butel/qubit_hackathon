@@ -29,11 +29,14 @@ sys.path.insert(0, str(ROOT / "network_instance"))
 from routing_qaoa import QuboWeights, decode_bitstring  # noqa: E402
 from routing_qaoa.qubo import build_cost_function, compute_coefficients  # noqa: E402
 
-import att_real as A  # noqa: E402
-import export  # noqa: E402
-import yen  # noqa: E402
+import qaoa_instance  # noqa: E402
 
 OUT = ROOT / "docs" / "real_instance_study.json"
+
+# One qubit per candidate route, and the shortlister's quality/disjointness
+# blend. Recorded in the output so a result can be traced to its instance.
+TARGET_QUBITS = 28
+DIVERSITY = 0.5
 
 # Latency is normalized to `cost_scale` while the congestion term is not, so
 # shrinking cost_scale is what buys the congestion term authority.
@@ -53,6 +56,12 @@ CONFIGS: dict[str, QuboWeights] = {
     "FT fit, cs=0.1, lc=5": QuboWeights(
         congestion_profile="fortz-thorup-fit", cost_scale=0.1, lambda_cong=5.0
     ),
+    # The profile the results are reported on: one local fit per link, which
+    # is what keeps the capacity cliff that a single global quadratic flattens.
+    "FT per-link": QuboWeights(congestion_profile="fortz-thorup-perlink"),
+    "FT per-link, lc=5": QuboWeights(
+        congestion_profile="fortz-thorup-perlink", lambda_cong=5.0
+    ),
 }
 
 # KPIs are physical, so any coefficient set decodes them; costs are reported
@@ -71,11 +80,11 @@ def kpis(solution) -> dict:
     }
 
 
-def study(region: str) -> dict:
-    inst = A.att_backbone(region=region)
-    extra = 2 if region == "east10" else 0
-    candidates = yen.budgeted_candidate_set(inst, k=5, base=2, extra_for=extra)
-    instance, current_routing = export.to_routing_instance(inst, candidates)
+def study(region: str, diversity: float = DIVERSITY) -> dict:
+    instance, current_routing, context = qaoa_instance.build(
+        region=region, target_qubits=TARGET_QUBITS, diversity=diversity
+    )
+    inst = context["source_instance"]
     scoring_coeffs = compute_coefficients(instance, SCORING)
 
     ranges = [range(len(instance.paths_of(k))) for k in range(len(instance.demands))]
@@ -134,6 +143,8 @@ def study(region: str) -> dict:
 
     return {
         "region": region,
+        "diversity": diversity,
+        "target_qubits": TARGET_QUBITS,
         "n_pops": inst.n_nodes,
         "n_links": inst.n_links,
         "n_demands": len(instance.demands),

@@ -4,6 +4,10 @@ import math
 
 import pytest
 
+from routing_qaoa.qubo import (
+    fortz_thorup_perlink_fit,
+    reachable_load_bounds,
+)
 from routing_qaoa import (
     QuboWeights,
     RoutingInstance,
@@ -298,3 +302,66 @@ def test_phi_uncap_and_hop_distance(micro2: RoutingInstance) -> None:
     assert phi_uncap(micro2) == pytest.approx(4 * 1 + 3 * 1)
     with pytest.raises(ValueError, match="no route"):
         hop_distance(micro2, "T", "A")
+
+
+# --- per-link Fortz-Thorup profile ----------------------------------------
+
+
+def test_reachable_load_bounds_from_candidate_sets(micro2):
+    """A demand floors a link only if every one of its paths crosses it."""
+    lo, hi = reachable_load_bounds(micro2)
+    for link in micro2.links:
+        assert lo.get(link.key, 0.0) <= hi.get(link.key, 0.0)
+    # Every link some path uses must have a positive ceiling.
+    used = {key for k in range(len(micro2.demands))
+            for path in micro2.paths_of(k) for key in path.links}
+    for key in used:
+        assert hi[key] > 0.0
+
+
+def test_perlink_profile_assigns_one_weight_per_link(micro2):
+    coeffs = compute_coefficients(
+        micro2, QuboWeights(congestion_profile="fortz-thorup-perlink")
+    )
+    assert coeffs.cong_weights is not None
+    assert len(coeffs.cong_weights) == len(coeffs.link_terms)
+
+
+def test_global_profile_leaves_per_link_weights_unset(micro2):
+    for profile in ("quadratic", "fortz-thorup-fit"):
+        coeffs = compute_coefficients(
+            micro2, QuboWeights(congestion_profile=profile)
+        )
+        assert coeffs.cong_weights is None
+
+
+def test_perlink_fit_tracks_the_exact_cost_over_its_band():
+    """A local fit is close to Phi where it is fitted, unlike one global fit."""
+    lo, hi = 0.8, 1.1
+    b, c = fortz_thorup_perlink_fit(lo, hi)
+    alpha, beta = fortz_thorup_quadratic_fit()
+    # Compare shapes rather than levels: the local fit drops the constant term,
+    # so match its slope against Phi's across the band.
+    local = (b * hi + c * hi ** 2) - (b * lo + c * lo ** 2)
+    glob = (alpha * hi + beta * hi ** 2) - (alpha * lo + beta * lo ** 2)
+    exact = (fortz_thorup_link_cost(hi, 1.0)
+             - fortz_thorup_link_cost(lo, 1.0))
+    assert abs(local - exact) < abs(glob - exact)
+
+
+def test_perlink_cost_is_still_a_quadratic_in_x(micro2):
+    """Evaluating H on bitstrings must agree with the coefficient expansion."""
+    coeffs = compute_coefficients(
+        micro2, QuboWeights(congestion_profile="fortz-thorup-perlink")
+    )
+    cost = build_cost_function(coeffs)
+    for bits in itertools.product((0, 1), repeat=micro2.num_qubits):
+        expected = sum(c * b for c, b in zip(coeffs.linear, bits))
+        expected += sum(
+            w * sum(a * bits[i] for i, a in terms) ** 2
+            for w, terms in zip(coeffs.cong_weights, coeffs.link_terms)
+        )
+        expected += coeffs.lambda_onehot_scaled * sum(
+            (sum(bits[i] for i in grp) - 1) ** 2 for grp in coeffs.onehot_groups
+        )
+        assert cost(list(bits)) == pytest.approx(expected)

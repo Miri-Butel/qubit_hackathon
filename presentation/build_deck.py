@@ -328,8 +328,10 @@ def scaling_slide(prs, data, page):
          f"{n} qubits synthesized on Classiq to depth "
          f"{circuit.get('transpiled_depth', '—')} with "
          f"{circuit.get('two_qubit_gates', '—')} two-qubit gates, executed on "
-         f"the simulator. CVaR falls from {values[0]:.1f} to "
-         f"{min(values):.1f}, so the optimizer is learning."),
+         f"the simulator. The CVaR of sampled H falls by "
+         f"{values[0] - min(values):.1f} ({values[0]:.1f} to "
+         f"{min(values):.1f}; the per-link fit drops constant terms, so H is "
+         f"not positive), meaning the optimizer is learning."),
         ("No feasible sample came back",
          f"With 14 demands choosing between two routes, the one-hot subspace "
          f"is 2^14 of 2^28 states — "
@@ -389,7 +391,7 @@ def craft_slide(prs, data, page):
          "The decoder gates every sample on one-hot feasibility and capacity "
          "before any KPI comparison, then returns the best feasible routing. "
          "Nothing infeasible can leave the pipeline."),
-        ("44 tests, one of them exhaustive",
+        ("49 tests, one of them exhaustive",
          "Including a bitstring-by-bitstring check of the cost polynomial "
          "against an independent implementation on a four-qubit instance."),
         ("Only qaoa.py imports classiq",
@@ -430,7 +432,7 @@ def closing_slide(prs, data, page):
         f"feasible mass {toy.get('feasible_mass', 0):.0%} vs "
         f"{toy.get('feasible_fraction_uniform', 0):.1%} uniform",
         "0 gap to the verified optimum",
-        "44 tests",
+        "49 tests",
     ]
     # Wrap chips across rows instead of running off the slide edge.
     x, y = MARGIN, 4.15
