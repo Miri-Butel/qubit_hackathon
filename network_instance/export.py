@@ -44,6 +44,12 @@ from pathlib import Path
 
 import yen
 
+# routing_qaoa.Demand.priority multiplies that demand's latency cost, with
+# 1.0 neutral and only ratios between demands mattering. Our qualitative
+# classes map straight onto it, so priority stops being metadata we drop on
+# the floor and becomes part of the objective.
+PRIORITY_TO_COEFFICIENT = {"high": 3.0, "medium": 2.0, "low": 1.0}
+
 
 def _directed_links(inst) -> list[dict]:
     links = []
@@ -162,7 +168,10 @@ def to_routing_instance(inst, candidates: dict):
         for l in data["links"]
     )
     demands = tuple(
-        Demand(d["name"], source=d["source"], target=d["target"], bandwidth=d["bandwidth"])
+        Demand(
+            d["name"], source=d["source"], target=d["target"], bandwidth=d["bandwidth"],
+            priority=PRIORITY_TO_COEFFICIENT.get(d["priority"], 1.0),
+        )
         for d in data["demands"]
     )
     paths = {
