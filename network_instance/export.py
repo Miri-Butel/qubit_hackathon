@@ -45,18 +45,22 @@ from pathlib import Path
 
 import yen
 
-# Upstream tags a demand's service class as a string; `Demand.priority`
-# downstream is a latency multiplier, so the classes need numeric weights.
-# High-priority traffic is worth 3x a best-effort demand's latency, which is
-# what makes premium demands win a contested link in the QUBO.
-PRIORITY_WEIGHTS = {"high": 3.0, "medium": 1.5, "low": 1.0}
+# routing_qaoa.Demand.priority multiplies that demand's latency cost, with
+# 1.0 neutral and only ratios between demands mattering. Our qualitative
+# classes map straight onto it, so priority stops being metadata we drop on
+# the floor and becomes part of the objective.
+PRIORITY_TO_COEFFICIENT = {"high": 3.0, "medium": 2.0, "low": 1.0}
 
 
 def priority_weight(value: str | float) -> float:
-    """Map a service-class tag to the numeric priority `routing_qaoa` wants."""
+    """Map a service-class tag to the numeric priority `routing_qaoa` wants.
+
+    Instances written before the classes were numeric carry a float here
+    already, so pass those through untouched.
+    """
     if isinstance(value, (int, float)):
         return float(value)
-    return PRIORITY_WEIGHTS.get(str(value).lower(), 1.0)
+    return PRIORITY_TO_COEFFICIENT.get(str(value).lower(), 1.0)
 
 
 def _directed_links(inst) -> list[dict]:
