@@ -4,14 +4,22 @@ Kept out of the notebook so the notebook cells stay short, and so the same
 figures can be regenerated for the final write-up.
 """
 
+from collections.abc import Mapping, Sequence
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+from matplotlib.lines import Line2D
 
 from topologies import Instance
 
 
 PRIORITY_COLOR = {"high": "#c0392b", "medium": "#e67e22", "low": "#7f8c8d"}
+ROUTE_PALETTE = ["#2980b9", "#8e44ad", "#16a085", "#d35400", "#c0392b"]
+DEMAND_PALETTE = [
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+    "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+]
 
 
 def _edge_width(capacity: float, max_capacity: float) -> float:
@@ -272,6 +280,258 @@ def draw_map(inst: Instance, routing=None, ax=None, title: str | None = None,
     return ax
 
 
+def _geo_pos(inst: Instance) -> dict[str, tuple[float, float]]:
+    """Longitude/latitude for every PoP. Prefers Topology Zoo node attrs."""
+    pos = {}
+    for n, data in inst.graph.nodes(data=True):
+        if "lon" in data and "lat" in data:
+            pos[n] = (data["lon"], data["lat"])
+    if len(pos) == inst.graph.number_of_nodes():
+        return pos
+    if inst.pos and len(inst.pos) == inst.graph.number_of_nodes():
+        return dict(inst.pos)
+    missing = sorted(set(inst.graph.nodes) - set(pos))
+    raise ValueError(f"nodes missing lon/lat: {missing}")
+
+
+def _paint_states(ax) -> None:
+    for ring in _us_states():
+        ax.fill(
+            [p[0] for p in ring], [p[1] for p in ring],
+            facecolor="#f4f6f7", edgecolor="#d5dbdb", linewidth=0.6, zorder=0,
+        )
+
+
+def _finish_geo(ax, pos, pad: float, title: str) -> None:
+    xs = [p[0] for p in pos.values()]
+    ys = [p[1] for p in pos.values()]
+    ax.set_xlim(min(xs) - pad, max(xs) + pad)
+    ax.set_ylim(min(ys) - pad, max(ys) + pad)
+    ax.set_aspect(1.25)
+    ax.set_title(title, fontsize=9)
+    ax.axis("off")
+
+
+def _util_style(val: float) -> tuple[str, str | tuple]:
+    if val > 1.0:
+        return "#e74c3c", (0, (4, 2))
+    if val > 0.8:
+        return "#e67e22", "solid"
+    if val > 0.5:
+        return "#f1c40f", "solid"
+    if val > 0.0:
+        return "#27ae60", "solid"
+    return "#c8d0d2", "solid"
+
+
+def _shift(p0, p1, k: float, step: float = 0.18):
+    """Perpendicular offset in lon/lat so overlapping demand paths stay visible."""
+    x0, y0 = p0
+    x1, y1 = p1
+    dx, dy = x1 - x0, y1 - y0
+    norm = (dx * dx + dy * dy) ** 0.5 or 1.0
+    ox, oy = -dy / norm * step * k, dx / norm * step * k
+    return (x0 + ox, y0 + oy), (x1 + ox, y1 + oy)
+
+
+def _label_pops(ax, inst: Instance, pos, nodes, node_size, font_size,
+                color="#1b2631", label_color="white", annotate=False, alpha=1.0):
+    size = max(node_size, (font_size ** 2) * 11)
+    xs = [pos[n][0] for n in nodes]
+    ys = [pos[n][1] for n in nodes]
+    ax.scatter(xs, ys, s=size, c=color, zorder=3, edgecolors="white",
+               linewidths=1.2, alpha=alpha)
+    for n in nodes:
+        ax.annotate(
+            n, pos[n], fontsize=font_size, color=label_color, ha="center",
+            va="center", zorder=4, fontweight="bold", alpha=alpha,
+        )
+        city = inst.graph.nodes[n].get("city")
+        if city and annotate:
+            ax.annotate(
+                city, (pos[n][0], pos[n][1] - 0.9), fontsize=max(font_size - 0.5, 4),
+                color="#566573", ha="center", va="top", zorder=4, alpha=alpha,
+            )
+
+
+def heaviest_demands(inst: Instance, n: int = 5) -> list[str]:
+    """Demand ids in descending bandwidth — the overlay set for a dense map."""
+    return [d.id for d in sorted(inst.demands, key=lambda d: -d.bandwidth)[:n]]
+
+
+def draw_map_slice(inst: Instance, keep, ax=None, title: str | None = None,
+                   node_size: int = 260, font_size: int = 6, pad: float = 2.5,
+                   annotate: bool = False):
+    """Full backbone with the working PoP slice highlighted and the rest faded.
+
+    `keep` is the set of PoP codes that become the working instance. Induced
+    links (both ends in `keep`) stay dark; every other PoP and span fades.
+    """
+    ax = ax or plt.gca()
+    keep = set(keep)
+    pos = _geo_pos(inst)
+    _paint_states(ax)
+
+    selected = [n for n in inst.graph.nodes if n in keep]
+    faded = [n for n in inst.graph.nodes if n not in keep]
+    max_cap = max(d["capacity"] for _, _, d in inst.graph.edges(data=True))
+
+    for u, v, data in inst.graph.edges(data=True):
+        induced = u in keep and v in keep
+        color = "#2c3e50" if induced else "#d5dbdb"
+        width = _edge_width(data["capacity"], max_cap) if induced else 1.0
+        ax.plot(
+            [pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
+            color=color, linewidth=width, zorder=1 if induced else 0.5,
+            solid_capstyle="round", alpha=1.0 if induced else 0.55,
+        )
+
+    if faded:
+        _label_pops(ax, inst, pos, faded, node_size=max(node_size * 0.45, 40),
+                    font_size=max(font_size - 1.5, 4), color="#b0b7bb",
+                    label_color="#7f8c8d", annotate=False, alpha=0.55)
+    _label_pops(ax, inst, pos, selected, node_size=node_size, font_size=font_size,
+                annotate=annotate)
+
+    n_keep = len(selected)
+    _finish_geo(ax, pos, pad, title or (
+        f"Working slice: {n_keep} of {inst.n_nodes} PoPs"
+        f"\ninduced links stay dark; the rest of the backbone fades"
+    ))
+    return ax
+
+
+def _route_groups(routes) -> list[tuple[str | None, list]]:
+    """Normalize a route list or demand->routes mapping into (label, routes) groups."""
+    if isinstance(routes, Mapping):
+        return [(key, list(val)) for key, val in routes.items()]
+    return [(None, list(routes))]
+
+
+def draw_map_routes(inst: Instance, routes, ax=None, title: str | None = None,
+                    node_size: int = 260, font_size: int = 6, pad: float = 2.5,
+                    annotate: bool = False):
+    """Yen candidates drawn on real geography, not a spring layout.
+
+    `routes` is one demand's Route list, or a mapping demand_id -> routes so
+    two heavy demands can share a panel without colliding in the legend.
+    """
+    ax = ax or plt.gca()
+    pos = _geo_pos(inst)
+    _paint_states(ax)
+
+    for u, v in inst.graph.edges():
+        ax.plot(
+            [pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
+            color="#dfe4e6", linewidth=1.5, zorder=1, solid_capstyle="round",
+        )
+
+    handles = []
+    endpoints = set()
+    color_i = 0
+    for group_name, group in _route_groups(routes):
+        for idx, r in enumerate(group):
+            color = ROUTE_PALETTE[color_i % len(ROUTE_PALETTE)]
+            color_i += 1
+            style = "solid" if idx == 0 else (0, (5, 2))
+            for j, (u, v) in enumerate(r.edges):
+                ax.plot(
+                    [pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
+                    color=color, linewidth=3.0 - 0.35 * idx, linestyle=style,
+                    zorder=2, solid_capstyle="round",
+                )
+            prefix = f"{group_name}  " if group_name else ""
+            handles.append(Line2D(
+                [], [], color=color, lw=2.5,
+                ls="-" if idx == 0 else "--",
+                label=f"{prefix}{r.label} ({r.delay:.1f}ms)",
+            ))
+            d = next((x for x in inst.demands if x.id == r.demand_id), None)
+            if d:
+                endpoints.update((d.src, d.dst))
+
+    _label_pops(ax, inst, pos, list(inst.graph.nodes), node_size=node_size,
+                font_size=font_size, annotate=annotate)
+    for n in endpoints:
+        ax.scatter(
+            *pos[n], s=max(node_size, (font_size ** 2) * 11) * 1.8,
+            facecolors="none", edgecolors="#c0392b", linewidths=2.0, zorder=5,
+        )
+    if handles:
+        ax.legend(handles=handles, fontsize=6, loc="lower left")
+    _finish_geo(ax, pos, pad, title or "Yen shortlist on the working map")
+    return ax
+
+
+def draw_map_solution(inst: Instance, routing, ax=None, title: str | None = None,
+                      overlay: int = 5, highlight: Sequence[str] | None = None,
+                      objective: float | None = None, node_size: int = 260,
+                      font_size: int = 6, pad: float = 2.5, annotate: bool = False):
+    """Solved routing on the US map: utilization on every link, colored overlays
+    on the heaviest demands (or an explicit `highlight` list).
+
+    Unused links stay light gray. Title carries objective / max utilization /
+    over-capacity count — the geographic version of the A–F 'Objective=…' figure.
+    """
+    ax = ax or plt.gca()
+    pos = _geo_pos(inst)
+    _paint_states(ax)
+
+    util = inst.link_utilization(routing)
+    max_cap = max(d["capacity"] for _, _, d in inst.graph.edges(data=True))
+    for u, v, data in inst.graph.edges(data=True):
+        val = util[frozenset((u, v))]
+        color, style = _util_style(val)
+        ax.plot(
+            [pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
+            color=color, linewidth=_edge_width(data["capacity"], max_cap),
+            linestyle=style, zorder=2, solid_capstyle="round",
+        )
+
+    if highlight is None:
+        highlight = [did for did in heaviest_demands(inst, overlay) if did in routing]
+    else:
+        highlight = [did for did in highlight if did in routing]
+
+    bw = {d.id: d.bandwidth for d in inst.demands}
+    max_bw = max((bw[did] for did in highlight), default=1.0) or 1.0
+    handles = []
+    n_hi = max(len(highlight), 1)
+    for i, did in enumerate(highlight):
+        color = DEMAND_PALETTE[i % len(DEMAND_PALETTE)]
+        demand = next(d for d in inst.demands if d.id == did)
+        k = i - (n_hi - 1) / 2
+        width = 2.0 + 2.5 * (demand.bandwidth / max_bw)
+        for nodes in routing[did]:
+            for u, v in zip(nodes[:-1], nodes[1:]):
+                p0, p1 = _shift(pos[u], pos[v], k)
+                ax.plot(
+                    [p0[0], p1[0]], [p0[1], p1[1]],
+                    color=color, linewidth=width, zorder=3, solid_capstyle="round",
+                    alpha=0.9,
+                )
+        handles.append(Line2D(
+            [], [], color=color, lw=2.5,
+            label=f"{did}: {demand.src}→{demand.dst} (b={demand.bandwidth:g})",
+        ))
+
+    _label_pops(ax, inst, pos, list(inst.graph.nodes), node_size=node_size,
+                font_size=font_size, annotate=annotate)
+    if handles:
+        ax.legend(handles=handles, fontsize=6, loc="lower left")
+
+    if title is None:
+        over = sum(1 for v in util.values() if v > 1.0)
+        parts = []
+        if objective is not None:
+            parts.append(f"Objective={objective:.1f}")
+        parts.append(f"max util {max(util.values()):.0%}")
+        parts.append(f"{over} link(s) over capacity")
+        title = "  ·  ".join(parts)
+    _finish_geo(ax, pos, pad, title)
+    return ax
+
+
 def routes_table(routes, demand=None) -> pd.DataFrame:
     """One row per candidate route, with the attribute each metric optimizes."""
     rows = []
@@ -317,7 +577,7 @@ def draw_routes(inst: Instance, routes, ax=None, title: str | None = None):
         ax.plot([pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
                 color="#dfe4e6", linewidth=1.5, zorder=1)
 
-    palette = ["#2980b9", "#8e44ad", "#16a085", "#d35400", "#c0392b"]
+    palette = ROUTE_PALETTE
     for idx, r in enumerate(routes):
         color = palette[idx % len(palette)]
         style = "solid" if idx == 0 else (0, (5, 2))

@@ -156,3 +156,34 @@ until those strings are mapped to numbers. Untouched here — it's a design deci
 
 **The energy landscape doesn't scale.** 28 qubits is 2.7×10⁸ states. `plot_energy_landscape` raises
 above 16 and points at `plot_sampled_cost_distribution`, which is sample-only and has no such limit.
+
+---
+
+## 6. AT&T map → slice → routes → solved result
+
+The A–F toy above is the quantum-run story. The result that sits on real geography is
+the east10 cut of AT&T's North America MPLS backbone. `scripts/render_figures.py` now
+also writes these two figures, still offline (classical brute force over the same QUBO
+QAOA would sample — 16384 assignments on 28 qubits).
+
+### `att_pipeline.png` — how the working map is made
+
+Four panels, left to right then down:
+
+1. The full Topology Zoo backbone: 25 PoPs, 56 links.
+2. The east10 slice highlighted on that same map (10 of 25 PoPs stay dark).
+3. Yen's diversity shortlist for the two heaviest east10 demands, drawn on lon/lat.
+4. The working instance that shortlist creates: 10 PoPs, 18 links, 14 demands → 28 qubits.
+
+![AT&T pipeline](figures/att_pipeline.png)
+
+### `att_solution.png` — today's routing vs the congestion-aware assignment
+
+Same working map twice. Left is shortest-path "today". Right is the Fortz–Thorup
+assignment, with the five heaviest demands overlaid in color (the geographic version
+of the A–F demand-colored figure). Title carries objective, max utilization, and
+over-capacity count.
+
+![AT&T solution](figures/att_solution.png)
+
+The notebook walkthrough is the new closing section of `ATT_routing_problem_and_yen.ipynb`.

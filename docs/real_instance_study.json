@@ -1,0 +1,477 @@
+{
+  "east10": {
+    "region": "east10",
+    "n_pops": 10,
+    "n_links": 18,
+    "n_demands": 5,
+    "num_qubits": 11,
+    "n_assignments": 48,
+    "today": {
+      "max_util": 0.7,
+      "violations": 0,
+      "phi_star": 2.1403,
+      "weighted_latency": 1724.7,
+      "total_latency": 34.2,
+      "demands_satisfied": 5
+    },
+    "frontier_min_violations": {
+      "max_util": 0.7,
+      "violations": 0,
+      "phi_star": 2.1403,
+      "weighted_latency": 1724.7,
+      "total_latency": 34.2,
+      "demands_satisfied": 5
+    },
+    "frontier_min_phi_star": {
+      "max_util": 0.7,
+      "violations": 0,
+      "phi_star": 2.1403,
+      "weighted_latency": 1724.7,
+      "total_latency": 34.2,
+      "demands_satisfied": 5
+    },
+    "configs": [
+      {
+        "config": "latency only",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 2.945562,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "quadratic, cs=1.0",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 3.091029,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "quadratic, cs=0.1",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 0.309103,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "quadratic, cs=0.01",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 0.03091,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "quadratic, cs=0.1, lc=5",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 0.36729,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "FT fit, cs=1.0",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 5.379203,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "FT fit, cs=0.1",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 0.53792,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "FT fit, cs=0.01",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 0.053792,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      },
+      {
+        "config": "FT fit, cs=0.1, lc=5",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0
+        },
+        "keeps_today": true,
+        "H": 1.511376,
+        "max_util": 0.7,
+        "violations": 0,
+        "phi_star": 2.1403,
+        "weighted_latency": 1724.7,
+        "total_latency": 34.2,
+        "demands_satisfied": 5
+      }
+    ],
+    "best_config": "latency only"
+  },
+  "east10_dense": {
+    "region": "east10_dense",
+    "n_pops": 10,
+    "n_links": 18,
+    "n_demands": 14,
+    "num_qubits": 28,
+    "n_assignments": 16384,
+    "today": {
+      "max_util": 2.8125,
+      "violations": 9,
+      "phi_star": 1414.7302,
+      "weighted_latency": 8666.4,
+      "total_latency": 105.1,
+      "demands_satisfied": 14
+    },
+    "frontier_min_violations": {
+      "max_util": 5.0625,
+      "violations": 6,
+      "phi_star": 1683.9331,
+      "weighted_latency": 9148.8,
+      "total_latency": 110.3,
+      "demands_satisfied": 14
+    },
+    "frontier_min_phi_star": {
+      "max_util": 3.7125,
+      "violations": 10,
+      "phi_star": 1024.7554,
+      "weighted_latency": 8857.3,
+      "total_latency": 107.8,
+      "demands_satisfied": 14
+    },
+    "configs": [
+      {
+        "config": "latency only",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 0,
+          "T10": 0,
+          "T11": 0,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": true,
+        "H": 5.644793,
+        "max_util": 2.8125,
+        "violations": 9,
+        "phi_star": 1414.7302,
+        "weighted_latency": 8666.4,
+        "total_latency": 105.1,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=1.0",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 6.869334,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=0.1",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.686933,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=0.01",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.068693,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=0.1, lc=5",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 1.161788,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=1.0",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 25.54284,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=0.1",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 2.554284,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=0.01",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.255428,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=0.1, lc=5",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 10.498541,
+        "max_util": 2.8125,
+        "violations": 12,
+        "phi_star": 1070.023,
+        "weighted_latency": 8742.1,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      }
+    ],
+    "best_config": "latency only"
+  }
+}

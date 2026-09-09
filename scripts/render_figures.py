@@ -24,7 +24,9 @@ import networkx as nx  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "network_instance"))
 
 from routing_qaoa import (  # noqa: E402
     CandidatePath,
@@ -45,6 +47,11 @@ from routing_qaoa import (  # noqa: E402
     to_networkx,
 )
 from routing_qaoa.qubo import build_cost_function  # noqa: E402
+
+import att_real as A  # noqa: E402
+import export  # noqa: E402
+import viz as netviz  # noqa: E402
+import yen  # noqa: E402
 
 # Mirrors the toy instance in qaoa_routing.ipynb.
 LINKS = (
@@ -196,6 +203,80 @@ def main() -> None:
           f"max_util={ft_solution.max_utilization:.2f} "
           f"violations={ft_solution.capacity_violations} "
           f"Φ*={ft_solution.phi_star:.2f}")
+
+    render_att_figures()
+
+
+def render_att_figures() -> None:
+    """Full map → east10 slice → Yen shortlist → solved east10_dense on the US map."""
+    full = A.att_backbone()
+    east = A.att_backbone(region="east10")
+    dense = A.att_backbone(region="east10_dense")
+    east_paths = yen.budgeted_candidate_set(east, k=5, base=2, extra_for=2)
+    dense_paths = yen.budgeted_candidate_set(dense, k=5, base=2)
+    n_qubits = sum(len(p) for p in dense_paths.values())
+    heavy = netviz.heaviest_demands(east, 2)
+
+    fig, axes = plt.subplots(2, 2, figsize=(16, 11))
+    netviz.draw_map(
+        full, ax=axes[0][0],
+        title="AT&T North America MPLS backbone: 25 PoPs, 56 links",
+    )
+    netviz.draw_map_slice(
+        full, A.REGIONS["east10"], ax=axes[0][1], annotate=True, font_size=6,
+    )
+    netviz.draw_map_routes(
+        east, {did: east_paths[did] for did in heavy}, ax=axes[1][0],
+        annotate=True, font_size=7,
+        title=f"Yen shortlist on the slice: {', '.join(heavy)} (each route is a qubit)",
+    )
+    netviz.draw_map(
+        dense, ax=axes[1][1], annotate=True, font_size=7,
+        title=(
+            f"Working instance: {dense.n_nodes} PoPs, {dense.n_links} links, "
+            f"{len(dense.demands)} demands → {n_qubits} qubits"
+        ),
+    )
+    fig.tight_layout()
+    save(fig, "att_pipeline.png")
+
+    weights = QuboWeights(congestion_profile="fortz-thorup-fit")
+    instance, _ = export.to_routing_instance(dense, dense_paths)
+    coeffs = compute_coefficients(instance, weights)
+    ref = brute_force_feasible(instance, weights)
+    solved = decode_bitstring(list(ref.best_bits), instance, coeffs)
+    today = {
+        d.id: [dense.current_routing[d.id][0]]
+        for d in dense.demands
+        if d.id in dense.current_routing
+    }
+    chosen = export.chosen_to_routing(solved.chosen, dense_paths, inst=dense)
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    netviz.draw_map_solution(
+        dense, today, ax=axes[0], annotate=True, font_size=7,
+        title=None,
+    )
+    axes[0].set_title(
+        f"Today's shortest-path routing\n{axes[0].get_title()}", fontsize=9,
+    )
+    netviz.draw_map_solution(
+        dense, chosen, ax=axes[1], annotate=True, font_size=7,
+        objective=solved.cost,
+    )
+    axes[1].set_title(
+        f"Congestion-aware assignment\n{axes[1].get_title()}", fontsize=9,
+    )
+    fig.tight_layout()
+    save(fig, "att_solution.png")
+
+    print(
+        f"ATT dense    : {solved.chosen} "
+        f"max_util={solved.max_utilization:.2f} "
+        f"violations={solved.capacity_violations} "
+        f"Φ*={solved.phi_star:.2f} "
+        f"H={solved.cost:.2f}"
+    )
 
 
 if __name__ == "__main__":

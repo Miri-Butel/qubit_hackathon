@@ -40,9 +40,23 @@ do not line up perfectly:
 """
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import yen
+
+# Upstream tags a demand's service class as a string; `Demand.priority`
+# downstream is a latency multiplier, so the classes need numeric weights.
+# High-priority traffic is worth 3x a best-effort demand's latency, which is
+# what makes premium demands win a contested link in the QUBO.
+PRIORITY_WEIGHTS = {"high": 3.0, "medium": 1.5, "low": 1.0}
+
+
+def priority_weight(value: str | float) -> float:
+    """Map a service-class tag to the numeric priority `routing_qaoa` wants."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    return PRIORITY_WEIGHTS.get(str(value).lower(), 1.0)
 
 
 def _directed_links(inst) -> list[dict]:
@@ -148,21 +162,26 @@ def protected_demands(inst) -> list[str]:
     return [d.id for d in inst.demands if d.needs_backup]
 
 
-def to_routing_instance(inst, candidates: dict):
-    """Build a live `routing_qaoa.RoutingInstance` (requires that package).
+def instance_from_export(data: dict):
+    """Build a live `routing_qaoa.RoutingInstance` from an export dict.
 
     Returns (instance, current_routing) ready to hand to
     `routing_qaoa.qubo.compute_coefficients`.
     """
     from routing_qaoa import CandidatePath, Demand, Link, RoutingInstance
 
-    data = build_export(inst, candidates)
     links = tuple(
         Link(l["u"], l["v"], capacity=l["capacity"], latency=l["latency"])
         for l in data["links"]
     )
     demands = tuple(
-        Demand(d["name"], source=d["source"], target=d["target"], bandwidth=d["bandwidth"])
+        Demand(
+            d["name"],
+            source=d["source"],
+            target=d["target"],
+            bandwidth=d["bandwidth"],
+            priority=priority_weight(d["priority"]),
+        )
         for d in data["demands"]
     )
     paths = {
@@ -172,3 +191,45 @@ def to_routing_instance(inst, candidates: dict):
         for name, plist in data["candidate_paths"].items()
     }
     return RoutingInstance(links, demands, paths), data["current_routing"]
+
+
+def _path_nodes(entry) -> list[str]:
+    """Accept a Yen Route, an export path dict, or a bare node list."""
+    if hasattr(entry, "nodes"):
+        return list(entry.nodes)
+    if isinstance(entry, Mapping) and "nodes" in entry:
+        return list(entry["nodes"])
+    return list(entry)
+
+
+def chosen_to_routing(chosen: Mapping[str, int | None], candidates, inst=None):
+    """Turn a decoded path-index assignment into `Instance` routing.
+
+    `chosen` maps demand id -> selected candidate index (`None` = unsatisfied).
+    `candidates` is demand id -> sequence of Route objects, export path dicts,
+    or node lists. Indices must match the `RoutingInstance` that produced
+    `chosen`. Pass `inst` to run the same `build_export` reordering that
+    `to_routing_instance` uses (today's route inserted as candidate 0).
+    """
+    if inst is not None:
+        candidates = build_export(inst, candidates)["candidate_paths"]
+    routing = {}
+    for demand_id, idx in chosen.items():
+        if idx is None:
+            continue
+        routing[demand_id] = [_path_nodes(candidates[demand_id][idx])]
+    return routing
+
+
+def to_routing_instance(inst, candidates: dict):
+    """Build a live `routing_qaoa.RoutingInstance` (requires that package)."""
+    return instance_from_export(build_export(inst, candidates))
+
+
+def load_routing_instance(path: str | Path):
+    """Build a live `routing_qaoa.RoutingInstance` from a written export JSON.
+
+    Lets the QAOA stages run against the committed instances without
+    re-deriving the topology or re-running Yen's.
+    """
+    return instance_from_export(json.loads(Path(path).read_text()))
