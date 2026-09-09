@@ -229,7 +229,9 @@ def shared_links(a: "Route", b: "Route") -> int:
     return len({frozenset(e) for e in a.edges} & {frozenset(e) for e in b.edges})
 
 
-def select_candidates(inst, demand, pool: list["Route"], n: int = 2) -> list["Route"]:
+def select_candidates(
+    inst, demand, pool: list["Route"], n: int = 2, diversity: float = 0.5,
+) -> list["Route"]:
     """Cut the Yen candidate pool down to the `n` routes the optimizer gets.
 
     This is the step that decides the qubit budget: every candidate kept is
@@ -242,22 +244,54 @@ def select_candidates(inst, demand, pool: list["Route"], n: int = 2) -> list["Ro
     For a 1+1 protected demand, the two must be link-disjoint, since that is
     what protection means; we take the best legal disjoint pair.
 
-    Otherwise we take the best route by delay, then repeatedly add whichever
-    remaining route shares the fewest links with everything already chosen,
-    breaking ties by delay. That buys genuine diversity: alternatives that
-    fail over to different parts of the network.
+    Otherwise the first route is the fastest, and each next one is chosen by
+
+        score(r) = (1 - diversity) * quality(r) + diversity * overlap(r)
+
+    where `quality` is the route's delay rescaled to [0, 1] across the pool
+    (0 = fastest available) and `overlap` is the fraction of the route's own
+    links already covered by routes chosen so far (0 = fully disjoint). Both
+    are minimized, so `diversity` slides continuously between two extremes:
+
+      diversity = 0.0   pure quality. Take the n fastest routes and accept
+                        that they may run down the same corridor. Cheapest
+                        latency, but if they share the congested link the
+                        solver's choice cannot relieve anything.
+      diversity = 1.0   pure disjointness. Alternatives fail over to genuinely
+                        different parts of the network, at whatever latency
+                        that costs.
+      0.3 - 0.6         the useful middle: alternatives that diverge where it
+                        matters without taking absurd detours.
+
+    Yen's own output is *not* diverse. Consecutive K-shortest paths are the
+    same route with a small detour spliced in, so they overlap heavily. All
+    of the spread comes from this function.
     """
     legal = [r for r in pool if r.within_latency]
     if not legal:
         return sorted(pool, key=lambda r: r.delay)[:n]
 
+    delays = [r.delay for r in legal]
+    lo, hi = min(delays), max(delays)
+    span = (hi - lo) or 1.0
+
+    def pick_next(chosen, remaining):
+        def score(r):
+            quality = (r.delay - lo) / span
+            covered = sum(shared_links(r, c) for c in chosen)
+            overlap = min(1.0, covered / max(1, len(r.edges)))
+            return (1.0 - diversity) * quality + diversity * overlap
+        return min(remaining, key=lambda r: (score(r), r.delay))
+
     if demand.needs_backup and n >= 2:
+        # Protection is a hard requirement, not a preference: 1+1 means two
+        # link-disjoint paths, so `diversity` does not get a vote on the pair.
         pairs = disjoint_pairs(legal, top=1)
         if pairs:
             chosen = list(pairs[0])
             remaining = [r for r in legal if r not in chosen]
             while len(chosen) < n and remaining:
-                nxt = min(remaining, key=lambda r: (sum(shared_links(r, c) for c in chosen), r.delay))
+                nxt = pick_next(chosen, remaining)
                 chosen.append(nxt)
                 remaining.remove(nxt)
             return chosen
@@ -265,13 +299,15 @@ def select_candidates(inst, demand, pool: list["Route"], n: int = 2) -> list["Ro
     chosen = [min(legal, key=lambda r: r.delay)]
     remaining = [r for r in legal if r is not chosen[0]]
     while len(chosen) < n and remaining:
-        nxt = min(remaining, key=lambda r: (sum(shared_links(r, c) for c in chosen), r.delay))
+        nxt = pick_next(chosen, remaining)
         chosen.append(nxt)
         remaining.remove(nxt)
     return chosen
 
 
-def build_candidate_set(inst, k: int = 5, n=2, load=None) -> dict[str, list["Route"]]:
+def build_candidate_set(
+    inst, k: int = 5, n=2, load=None, diversity: float = 0.5,
+) -> dict[str, list["Route"]]:
     """End to end: Yen's top-k under every metric, merged, then shortlisted to
     `n` routes per demand. This dict is exactly what the QUBO encodes.
 
@@ -286,19 +322,20 @@ def build_candidate_set(inst, k: int = 5, n=2, load=None) -> dict[str, list["Rou
     for d in inst.demands:
         pool = candidate_routes(inst, d, k=k, load=load)
         want = n.get(d.id, 2) if isinstance(n, dict) else n
-        out[d.id] = select_candidates(inst, d, pool, n=want)
+        out[d.id] = select_candidates(inst, d, pool, n=want, diversity=diversity)
     return out
 
 
 def budgeted_candidate_set(
-    inst, k: int = 5, base: int = 2, extra_for: int = 0, load=None
+    inst, k: int = 5, base: int = 2, extra_for: int = 0, load=None,
+    diversity: float = 0.5,
 ) -> dict[str, list["Route"]]:
     """Shortlist with `base` routes each, then hand a spare route to the
     `extra_for` largest demands -- a simple way to spend a fixed qubit
     budget where it buys the most decision."""
     ranked = sorted(inst.demands, key=lambda d: -d.bandwidth)
     n = {d.id: base + (1 if i < extra_for else 0) for i, d in enumerate(ranked)}
-    return build_candidate_set(inst, k=k, n=n, load=load)
+    return build_candidate_set(inst, k=k, n=n, load=load, diversity=diversity)
 
 
 def disjoint_pairs(routes: list[Route], top: int = 5) -> list[tuple[Route, Route]]:

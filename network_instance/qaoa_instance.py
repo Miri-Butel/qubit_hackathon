@@ -41,17 +41,19 @@ def _paths_per_demand(demands, target_qubits: int, min_paths: int = 2) -> dict[s
     """
     ranked = sorted(demands, key=lambda d: -d.bandwidth)
     if min_paths * len(ranked) > target_qubits:
-        raise ValueError(
-            f"{len(ranked)} demands x {min_paths} paths exceeds the "
-            f"{target_qubits}-qubit budget; use fewer demands"
-        )
+        # The budget cannot seat every demand with a real choice, so carry the
+        # heaviest demands and drop the rest. The alternative, giving everyone
+        # a single forced route, spends a qubit per demand on no decision at
+        # all: a one-hot group of size 1 is pinned to 1 by its own penalty.
+        ranked = ranked[: target_qubits // min_paths]
     counts = {d.id: min_paths for d in ranked}
     for d in ranked[: target_qubits - min_paths * len(ranked)]:
         counts[d.id] += 1
     return counts
 
 
-def build(region: str = "east10_dense", target_qubits: int = 28, k: int = 5):
+def build(region: str = "east10_dense", target_qubits: int = 28, k: int = 5,
+          diversity: float = 0.5):
     """Build a `routing_qaoa` instance from the real AT&T backbone.
 
     Returns `(instance, current_routing, context)` where `instance` is a
@@ -63,10 +65,17 @@ def build(region: str = "east10_dense", target_qubits: int = 28, k: int = 5):
     net = att_real.att_backbone(region=region)
     counts = _paths_per_demand(net.demands, target_qubits)
 
+    # A tight budget may have dropped demands; keep the instance consistent
+    # with what the budget actually seats.
+    net.demands[:] = [d for d in net.demands if d.id in counts]
+    for demand_id in list(net.current_routing):
+        if demand_id not in counts:
+            del net.current_routing[demand_id]
+
     # Latency bounds are deliberately NOT applied as a filter here: downstream
     # prices latency instead of forbidding it. Candidates are the best routes
     # under all four metrics (delay, opex, hops, spare capacity), merged.
-    candidates = yen.build_candidate_set(net, k=k, n=counts)
+    candidates = yen.build_candidate_set(net, k=k, n=counts, diversity=diversity)
 
     instance, current_routing = export.to_routing_instance(net, candidates)
 
