@@ -1,0 +1,429 @@
+{
+  "target": "toy",
+  "num_qubits": 9,
+  "num_demands": 3,
+  "num_links": 9,
+  "weights": {
+    "congestion_profile": "fortz-thorup-fit",
+    "lambda_cong": 1.0,
+    "lambda_onehot": 4.0,
+    "cost_scale": 0.1
+  },
+  "config": {
+    "num_layers": 3,
+    "num_shots": 2048,
+    "max_iterations": 100,
+    "quantile": 0.5,
+    "random_seed": 42
+  },
+  "circuit": {
+    "width": 9,
+    "transpiled_depth": 101,
+    "gate_counts": {
+      "cx": 144,
+      "rz": 99,
+      "rx": 27,
+      "h": 9
+    },
+    "two_qubit_gates": 144
+  },
+  "runtime_seconds": 293.7,
+  "brute_force": {
+    "num_combinations": 27,
+    "best_cost": 0.6088890748810649,
+    "best_assignment": {
+      "d1": 1,
+      "d2": 1,
+      "d3": 2
+    },
+    "chosen": {
+      "d1": 1,
+      "d2": 1,
+      "d3": 2
+    },
+    "feasible_onehot": true,
+    "max_utilization": 0.8,
+    "capacity_violations": 0,
+    "total_latency": 14.0,
+    "weighted_latency": 46.0,
+    "phi_total": 49.667,
+    "phi_star": 2.0694,
+    "cost": 0.608889,
+    "demands_satisfied": 3
+  },
+  "today": {
+    "chosen": {
+      "d1": 0,
+      "d2": 0,
+      "d3": 0
+    },
+    "feasible_onehot": true,
+    "max_utilization": 2.0,
+    "capacity_violations": 2,
+    "total_latency": 10.0,
+    "weighted_latency": 34.0,
+    "phi_total": 30626.333,
+    "phi_star": 1276.0972,
+    "cost": 1.399037,
+    "demands_satisfied": 3
+  },
+  "feasible_fraction_uniform": 0.052734375,
+  "feasible_mass": 0.572265625,
+  "feasible_sample_count": 27,
+  "distinct_samples": 206,
+  "best_feasible": {
+    "probability": 0.03125,
+    "bits": "010010001",
+    "chosen": {
+      "d1": 1,
+      "d2": 1,
+      "d3": 2
+    },
+    "feasible_onehot": true,
+    "max_utilization": 0.8,
+    "capacity_violations": 0,
+    "total_latency": 14.0,
+    "weighted_latency": 46.0,
+    "phi_total": 49.667,
+    "phi_star": 2.0694,
+    "cost": 0.608889,
+    "demands_satisfied": 3
+  },
+  "objective_values": [
+    1.432457149108251,
+    2.5574272879545252,
+    1.30860641222541,
+    1.8452633906873837,
+    0.9529061088908346,
+    1.0098485390349154,
+    2.7932008759958924,
+    1.340834130116877,
+    0.9212871759730732,
+    0.903031799008756,
+    0.9307364425057734,
+    0.8883873234755115,
+    0.8477113740215159,
+    0.8201822585218661,
+    0.79962131311567,
+    0.7898633252558493,
+    0.7838743336123629,
+    0.7952007757256423,
+    0.7854862889358142,
+    0.7750798803355228,
+    0.7747875108859203,
+    0.7700792631028395,
+    0.778992275664306,
+    0.7655933533515161,
+    0.7621370250276113,
+    0.7657848575376784,
+    0.7589102633353962,
+    0.7597339164760712,
+    0.7598253670302981,
+    0.7691786430648155,
+    0.7696997171000708,
+    0.7628797095398687,
+    0.7671165304971629,
+    0.7629180778501914,
+    0.7670403983107308,
+    0.7638151331583811,
+    0.7636888928037264,
+    0.7573709496155936,
+    0.76484139584929,
+    0.7573198601311535,
+    0.769459471432566,
+    0.7631578754608958,
+    0.7653687417788857,
+    0.7652980944659151,
+    0.7604058586104566,
+    0.7679844054399692,
+    0.771267910048931,
+    0.7631745378415049,
+    0.7627089023169082,
+    0.7665844075242915,
+    0.7670523131447458,
+    0.7628964236184641,
+    0.7606992593854622,
+    0.7649925090636372,
+    0.7684195940208467,
+    0.7708009462281409,
+    0.770873359874234,
+    0.7650647215243618,
+    0.7740689871474614,
+    0.7563122415247521,
+    0.7678666901656108,
+    0.7575064349045761,
+    0.7689208990223309
+  ],
+  "top_samples": [
+    {
+      "probability": 0.03466796875,
+      "bits": "001010010",
+      "chosen": {
+        "d1": 2,
+        "d2": 1,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 0.8,
+      "capacity_violations": 0,
+      "total_latency": 14.0,
+      "weighted_latency": 48.0,
+      "phi_total": 50.0,
+      "phi_star": 2.0833,
+      "cost": 0.62357,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.03173828125,
+      "bits": "001001010",
+      "chosen": {
+        "d1": 2,
+        "d2": 2,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 0.8,
+      "capacity_violations": 0,
+      "total_latency": 14.0,
+      "weighted_latency": 48.0,
+      "phi_total": 47.333,
+      "phi_star": 1.9722,
+      "cost": 0.645877,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.03125,
+      "bits": "010010001",
+      "chosen": {
+        "d1": 1,
+        "d2": 1,
+        "d3": 2
+      },
+      "feasible_onehot": true,
+      "max_utilization": 0.8,
+      "capacity_violations": 0,
+      "total_latency": 14.0,
+      "weighted_latency": 46.0,
+      "phi_total": 49.667,
+      "phi_star": 2.0694,
+      "cost": 0.608889,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.03076171875,
+      "bits": "010010100",
+      "chosen": {
+        "d1": 1,
+        "d2": 1,
+        "d3": 0
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 7831.0,
+      "phi_star": 326.2917,
+      "cost": 0.753944,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.02734375,
+      "bits": "010001001",
+      "chosen": {
+        "d1": 1,
+        "d2": 2,
+        "d3": 2
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.2,
+      "capacity_violations": 1,
+      "total_latency": 14.0,
+      "weighted_latency": 46.0,
+      "phi_total": 2855.667,
+      "phi_star": 118.9861,
+      "cost": 0.85426,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.02685546875,
+      "bits": "001100010",
+      "chosen": {
+        "d1": 2,
+        "d2": 0,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.2,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 42.0,
+      "phi_total": 2844.667,
+      "phi_star": 118.5278,
+      "cost": 0.796509,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.025390625,
+      "bits": "010001100",
+      "chosen": {
+        "d1": 1,
+        "d2": 2,
+        "d3": 0
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 7845.0,
+      "phi_star": 326.875,
+      "cost": 0.865477,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.025390625,
+      "bits": "010001010",
+      "chosen": {
+        "d1": 1,
+        "d2": 2,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 7862.0,
+      "phi_star": 327.5833,
+      "cost": 0.921243,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.025390625,
+      "bits": "001100001",
+      "chosen": {
+        "d1": 2,
+        "d2": 0,
+        "d3": 2
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 14.0,
+      "weighted_latency": 48.0,
+      "phi_total": 7842.667,
+      "phi_star": 326.7778,
+      "cost": 0.919131,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.02392578125,
+      "bits": "001010100",
+      "chosen": {
+        "d1": 2,
+        "d2": 1,
+        "d3": 0
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 14.0,
+      "weighted_latency": 48.0,
+      "phi_total": 7834.0,
+      "phi_star": 326.4167,
+      "cost": 0.835482,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.0234375,
+      "bits": "010010010",
+      "chosen": {
+        "d1": 1,
+        "d2": 1,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 7848.0,
+      "phi_star": 327.0,
+      "cost": 0.809711,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.02294921875,
+      "bits": "100001010",
+      "chosen": {
+        "d1": 0,
+        "d2": 2,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 7848.0,
+      "phi_star": 327.0,
+      "cost": 0.891501,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.0205078125,
+      "bits": "100010100",
+      "chosen": {
+        "d1": 0,
+        "d2": 1,
+        "d3": 0
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 2,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 15618.0,
+      "phi_star": 650.75,
+      "cost": 0.99188,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.0205078125,
+      "bits": "100010010",
+      "chosen": {
+        "d1": 0,
+        "d2": 1,
+        "d3": 1
+      },
+      "feasible_onehot": true,
+      "max_utilization": 1.4,
+      "capacity_violations": 1,
+      "total_latency": 12.0,
+      "weighted_latency": 40.0,
+      "phi_total": 7834.0,
+      "phi_star": 326.4167,
+      "cost": 0.779969,
+      "demands_satisfied": 3
+    },
+    {
+      "probability": 0.01953125,
+      "bits": "000100010",
+      "chosen": {
+        "d1": null,
+        "d2": 0,
+        "d3": 1
+      },
+      "feasible_onehot": false,
+      "max_utilization": 1.2,
+      "capacity_violations": 1,
+      "total_latency": 6.0,
+      "weighted_latency": 18.0,
+      "phi_total": 2820.667,
+      "phi_star": 117.5278,
+      "cost": 0.818057,
+      "demands_satisfied": 2
+    }
+  ]
+}

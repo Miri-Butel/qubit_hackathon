@@ -1,201 +1,4 @@
 {
-  "east10": {
-    "region": "east10",
-    "n_pops": 10,
-    "n_links": 18,
-    "n_demands": 5,
-    "num_qubits": 11,
-    "n_assignments": 48,
-    "today": {
-      "max_util": 0.7,
-      "violations": 0,
-      "phi_star": 2.1403,
-      "weighted_latency": 1724.7,
-      "total_latency": 34.2,
-      "demands_satisfied": 5
-    },
-    "frontier_min_violations": {
-      "max_util": 0.7,
-      "violations": 0,
-      "phi_star": 2.1403,
-      "weighted_latency": 1724.7,
-      "total_latency": 34.2,
-      "demands_satisfied": 5
-    },
-    "frontier_min_phi_star": {
-      "max_util": 0.7,
-      "violations": 0,
-      "phi_star": 2.1403,
-      "weighted_latency": 1724.7,
-      "total_latency": 34.2,
-      "demands_satisfied": 5
-    },
-    "configs": [
-      {
-        "config": "latency only",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 2.945562,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "quadratic, cs=1.0",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 3.091029,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "quadratic, cs=0.1",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 0.309103,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "quadratic, cs=0.01",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 0.03091,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "quadratic, cs=0.1, lc=5",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 0.36729,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "FT fit, cs=1.0",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 5.379203,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "FT fit, cs=0.1",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 0.53792,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "FT fit, cs=0.01",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 0.053792,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      },
-      {
-        "config": "FT fit, cs=0.1, lc=5",
-        "chosen": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0,
-          "T4": 0,
-          "T5": 0
-        },
-        "keeps_today": true,
-        "H": 1.511376,
-        "max_util": 0.7,
-        "violations": 0,
-        "phi_star": 2.1403,
-        "weighted_latency": 1724.7,
-        "total_latency": 34.2,
-        "demands_satisfied": 5
-      }
-    ],
-    "best_config": "latency only"
-  },
   "east10_dense": {
     "region": "east10_dense",
     "n_pops": 10,
@@ -473,5 +276,283 @@
       }
     ],
     "best_config": "latency only"
+  },
+  "east10_tuned": {
+    "region": "east10_tuned",
+    "n_pops": 10,
+    "n_links": 18,
+    "n_demands": 14,
+    "num_qubits": 28,
+    "n_assignments": 16384,
+    "today": {
+      "max_util": 1.05,
+      "violations": 1,
+      "phi_star": 5.8448,
+      "weighted_latency": 3042.0,
+      "total_latency": 105.1,
+      "demands_satisfied": 14
+    },
+    "frontier_min_violations": {
+      "max_util": 0.9,
+      "violations": 0,
+      "phi_star": 2.0536,
+      "weighted_latency": 3068.4,
+      "total_latency": 106.2,
+      "demands_satisfied": 14
+    },
+    "frontier_min_phi_star": {
+      "max_util": 0.9,
+      "violations": 0,
+      "phi_star": 2.0536,
+      "weighted_latency": 3068.4,
+      "total_latency": 106.2,
+      "demands_satisfied": 14
+    },
+    "configs": [
+      {
+        "config": "latency only",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 0,
+          "T10": 0,
+          "T11": 0,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": true,
+        "H": 5.993603,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.8448,
+        "weighted_latency": 3042.0,
+        "total_latency": 105.1,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=1.0",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 0,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 6.165619,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4693,
+        "weighted_latency": 3054.0,
+        "total_latency": 105.6,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=0.1",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 0,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.616562,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4693,
+        "weighted_latency": 3054.0,
+        "total_latency": 105.6,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=0.01",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 0,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.061656,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4693,
+        "weighted_latency": 3054.0,
+        "total_latency": 105.6,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "quadratic, cs=0.1, lc=5",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 0,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.679682,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4693,
+        "weighted_latency": 3054.0,
+        "total_latency": 105.6,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=1.0",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 8.617626,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4425,
+        "weighted_latency": 3068.4,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=0.1",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.861763,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4425,
+        "weighted_latency": 3068.4,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=0.01",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 0.086176,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4425,
+        "weighted_latency": 3068.4,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      },
+      {
+        "config": "FT fit, cs=0.1, lc=5",
+        "chosen": {
+          "T1": 0,
+          "T2": 0,
+          "T3": 0,
+          "T4": 0,
+          "T5": 0,
+          "T6": 0,
+          "T7": 0,
+          "T8": 0,
+          "T9": 1,
+          "T10": 0,
+          "T11": 1,
+          "T12": 0,
+          "T13": 0,
+          "T14": 0
+        },
+        "keeps_today": false,
+        "H": 1.895451,
+        "max_util": 1.05,
+        "violations": 1,
+        "phi_star": 5.4425,
+        "weighted_latency": 3068.4,
+        "total_latency": 106.2,
+        "demands_satisfied": 14
+      }
+    ],
+    "best_config": "FT fit, cs=1.0"
   }
 }

@@ -91,6 +91,9 @@ REGIONS = {
     "east10": ["CHCG", "CLEV", "NY54", "CMBR", "PHLA", "WASH", "RLGH", "ATLN", "NSVL", "STLS"],
     # Same 10 PoPs, loaded with many more demands. See REGION_DEFAULTS.
     "east10_dense": ["CHCG", "CLEV", "NY54", "CMBR", "PHLA", "WASH", "RLGH", "ATLN", "NSVL", "STLS"],
+    # Same 10 PoPs and demand count as east10_dense at a routable traffic
+    # level -- the instance the QAOA results are reported on.
+    "east10_tuned": ["CHCG", "CLEV", "NY54", "CMBR", "PHLA", "WASH", "RLGH", "ATLN", "NSVL", "STLS"],
     "west": ["STTL", "PTLD", "SCRM", "SNFN", "SLKC", "DNVR", "LA03", "SNDG", "PHNX"],
     "northeast": ["NY54", "CMBR", "PHLA", "WASH", "CLEV", "CHCG", "RLGH"],
     "south": ["DLLS", "HSTN", "SNAN", "NWOR", "ATLN", "ORLD", "NSVL", "STLS", "KSCY"],
@@ -117,6 +120,31 @@ REGION_DEFAULTS = {
     # exhaustive search over all 16384 assignments beats today's routing,
     # cutting total congestion sum(u^2) by about 11%.
     "east10_dense": {"top_n": 14, "scale": 4.0, "max_per_pop": 4, "fill": 0.9},
+    # The instance the QAOA results are reported on. Same 10 PoPs and 14
+    # demands as east10_dense, but `fill` drops from 0.9 to 0.3.
+    #
+    # That one number decides whether the problem is solvable at all. `fill`
+    # caps each demand at that fraction of the widest bottleneck available to
+    # it, so at 0.9 any two demands sharing a link overload it no matter how
+    # they are routed: an exhaustive search over all 16384 assignments finds
+    # *no* assignment without capacity violations, and the best one trades 9
+    # violations for 6 while making the peak worse. Congestion that no routing
+    # can relieve is a capacity-planning result, not an optimization problem.
+    #
+    # At 0.3 the demands compete instead of individually overflowing. Today's
+    # shortest-path routing drives one link to 105% of capacity; a clean
+    # assignment exists and peaks at 90%; and only 112 of the 16384 assignments
+    # are clean at all (0.7%), so finding one is real work. Same 28 qubits.
+    #
+    # Measured limit, worth knowing before promising a quantum result here:
+    # with D demands choosing between 2 routes each, the one-hot feasible
+    # subspace is 2^D of 2^(2D) states -- 0.006% at D=14. A depth-1 X-mixer
+    # QAOA run samples no feasible state at all (see docs/qaoa_east10_tuned.json),
+    # even though its CVaR objective drops from 47.1 to 11.8. Reaching this
+    # subspace needs a feasibility-preserving XY mixer or a binary encoding;
+    # dropping to 8 demands makes it reachable but leaves today's routing
+    # already optimal, so there is nothing left to solve.
+    "east10_tuned": {"top_n": 14, "scale": 2.0, "max_per_pop": 4, "fill": 0.3},
     "west": {"top_n": 6, "scale": 1.5},
     "northeast": {"top_n": 5, "scale": 2.0},
     "south": {"top_n": 6, "scale": 1.5},

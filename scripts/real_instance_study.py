@@ -148,7 +148,8 @@ def study(region: str) -> dict:
 
 
 def main() -> None:
-    payload = {region: study(region) for region in ("east10", "east10_dense")}
+    regions = sys.argv[1:] or ["east10", "east10_dense", "east10_tuned"]
+    payload = {region: study(region) for region in regions}
     OUT.write_text(json.dumps(payload, indent=2))
     print(f"\nwrote {OUT.relative_to(ROOT)}")
 

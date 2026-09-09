@@ -35,7 +35,7 @@ from .model import LinkKey, RoutingInstance
 FT_BREAKPOINTS: tuple[float, ...] = (1 / 3, 2 / 3, 9 / 10, 1.0, 11 / 10)
 FT_SLOPES: tuple[float, ...] = (1.0, 3.0, 10.0, 70.0, 500.0, 5000.0)
 
-CongestionProfile = Literal["quadratic", "fortz-thorup-fit"]
+CongestionProfile = Literal["quadratic", "fortz-thorup-fit", "fortz-thorup-perlink"]
 
 
 def fortz_thorup_link_cost(load: float, capacity: float) -> float:
@@ -75,6 +75,60 @@ def fortz_thorup_quadratic_fit(
     return float(alpha), float(beta)
 
 
+def fortz_thorup_perlink_fit(
+    u_lo: float, u_hi: float, num_samples: int = 64
+) -> tuple[float, float]:
+    """Least-squares (b, c) for b*u + c*u^2 ~ Phi(u)/c over [u_lo, u_hi].
+
+    One *global* quadratic cannot be simultaneously cheap at u = 0.3 and
+    catastrophic at u = 1.05, so `fortz-thorup-fit` minimizes total squared
+    load and leaves a link sitting just over capacity: on the real AT&T
+    instance its optimum keeps today's 105% peak, while the exact Phi clears it
+    to 90%.
+
+    Fitting each link over the utilization interval it can actually reach
+    recovers the cliff. H already carries a per-link linear term and u_e is
+    linear in x, so the fit stays a QUBO. The constant term is dropped: it is
+    identical for every assignment and cannot move the argmin. b and c are
+    unconstrained here -- a steep local segment needs a negative linear part,
+    and clamping it (as the global fit must, to avoid rewarding empty links)
+    is exactly what flattens the cliff away.
+    """
+    import numpy as np
+
+    hi = max(u_hi, u_lo + 1e-6)
+    u = np.linspace(u_lo, hi, num_samples)
+    y = np.array([fortz_thorup_link_cost(float(x), 1.0) for x in u])
+    basis = np.stack([np.ones_like(u), u, u * u], axis=1)
+    coeffs, *_ = np.linalg.lstsq(basis, y, rcond=None)
+    return float(coeffs[1]), float(coeffs[2])
+
+
+def reachable_load_bounds(
+    instance: RoutingInstance,
+) -> tuple[dict[LinkKey, float], dict[LinkKey, float]]:
+    """Per-link (min, max) load over all one-hot assignments.
+
+    A demand contributes its full bandwidth to a link at minimum when *every*
+    one of its candidate paths crosses that link, and at maximum when *any*
+    of them does. Derived from the candidate sets only -- never from a
+    solution -- so the per-link fits stay independent of the answer.
+    """
+    lo: dict[LinkKey, float] = {}
+    hi: dict[LinkKey, float] = {}
+    for k, demand in enumerate(instance.demands):
+        paths = instance.paths_of(k)
+        crossings: dict[LinkKey, int] = {}
+        for path in paths:
+            for key in set(path.links):
+                crossings[key] = crossings.get(key, 0) + 1
+        for key, count in crossings.items():
+            hi[key] = hi.get(key, 0.0) + demand.bandwidth
+            if count == len(paths):
+                lo[key] = lo.get(key, 0.0) + demand.bandwidth
+    return lo, hi
+
+
 @dataclass(frozen=True)
 class QuboWeights:
     """Term weights and normalization knobs for the routing Hamiltonian."""
@@ -101,6 +155,10 @@ class CostCoefficients:
     onehot_groups: tuple[tuple[int, ...], ...]
     lambda_onehot_scaled: float
     cong_scale: float
+    # Per-link quadratic weights, parallel to `link_terms`, used by the
+    # `fortz-thorup-perlink` profile where each link carries its own local fit.
+    # None means every link shares `cong_scale`.
+    cong_weights: tuple[float, ...] | None = None
 
 
 def compute_coefficients(
@@ -146,15 +204,32 @@ def compute_coefficients(
             for key in path.links:
                 a = demand.bandwidth / instance.link_by_key(key).capacity
                 incidence.setdefault(key, []).append((i, a))
+    link_keys = tuple(incidence.keys())
     link_terms = tuple(tuple(terms) for terms in incidence.values())
     m_used = max(len(link_terms), 1)
+    cong_base = weights.lambda_cong * weights.cost_scale / m_used
+    cong_weights: tuple[float, ...] | None = None
     if weights.congestion_profile == "quadratic":
         alpha, beta = 0.0, 1.0
     elif weights.congestion_profile == "fortz-thorup-fit":
         alpha, beta = fortz_thorup_quadratic_fit()
+    elif weights.congestion_profile == "fortz-thorup-perlink":
+        # Each link gets a local fit of the exact Phi over the utilization
+        # band it can reach, so the capacity cliff survives into the QUBO.
+        alpha, beta = 0.0, 1.0
+        lo_load, hi_load = reachable_load_bounds(instance)
+        per_link: list[float] = []
+        for key, terms in zip(link_keys, link_terms):
+            capacity = instance.link_by_key(key).capacity
+            b, c = fortz_thorup_perlink_fit(
+                lo_load.get(key, 0.0) / capacity, hi_load.get(key, 0.0) / capacity
+            )
+            per_link.append(cong_base * c)
+            for i, a in terms:
+                linear[i] += cong_base * b * a
+        cong_weights = tuple(per_link)
     else:
         raise ValueError(f"unknown congestion_profile {weights.congestion_profile!r}")
-    cong_base = weights.lambda_cong * weights.cost_scale / m_used
     cong_scale = cong_base * beta
     if alpha:
         for terms in link_terms:
@@ -189,6 +264,7 @@ def compute_coefficients(
         onehot_groups=onehot_groups,
         lambda_onehot_scaled=weights.lambda_onehot * weights.cost_scale,
         cong_scale=cong_scale,
+        cong_weights=cong_weights,
     )
 
 
@@ -203,12 +279,20 @@ def build_cost_function(coeffs: CostCoefficients) -> Callable[[Sequence[Any]], A
     onehot_groups = coeffs.onehot_groups
     lambda_onehot = coeffs.lambda_onehot_scaled
     cong_scale = coeffs.cong_scale
+    cong_weights = coeffs.cong_weights
 
     def cost(x: Sequence[Any]) -> Any:
         lat = sum(c * x[i] for i, c in enumerate(linear) if c != 0.0)
-        cong = sum(sum(a * x[i] for i, a in terms) ** 2 for terms in link_terms)
         onehot = sum((sum(x[i] for i in grp) - 1) ** 2 for grp in onehot_groups)
-        return lat + cong_scale * cong + lambda_onehot * onehot
+        if cong_weights is None:
+            cong = sum(sum(a * x[i] for i, a in terms) ** 2 for terms in link_terms)
+            cong_total = cong_scale * cong
+        else:
+            cong_total = sum(
+                w * sum(a * x[i] for i, a in terms) ** 2
+                for w, terms in zip(cong_weights, link_terms)
+            )
+        return lat + cong_total + lambda_onehot * onehot
 
     return cost
 
